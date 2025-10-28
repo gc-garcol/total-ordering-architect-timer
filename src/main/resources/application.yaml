@@ -1,0 +1,36 @@
+spring.application.name: total-ordering-architect-timer
+spring.threads.virtual.enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger
+
+rocksdb:
+  path: ./data/rocksdb
+
+queue.handler:
+  batchConsume: 100
+  batchHandle: 400
+  tickIntervalMillis: 500
+
+#spring:
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/ordering?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#    username: root
+#    password: root
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    hikari:
+#      minimum-idle: 5
+#      maximum-pool-size: 20
+#      idle-timeout: 30000
+#      connection-timeout: 20000
+#      max-lifetime: 1800000
+#      pool-name: OrderingHikariPool
+#  jpa:
+#    open-in-view: false
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
