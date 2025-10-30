@@ -6,10 +6,49 @@ The approach to updating outdated data while preserving `determinism` in a total
 f(command[i -> j], timestampX) == f(command[i -> j], timestampY)
 ```
 
-![architecture](./docs/architecture.png)
+```mermaid
+flowchart LR
+    %% Producers
+    subgraph P[" "]
+        p1["producer"]
+        p2["producer"]
+        p3["producer"]
+    end
 
-## Performance
-![benchmark.png](docs/benchmark.png)
+    %% Command queue
+    subgraph Q[" "]
+        direction LR
+        c1["command"]
+        c2["command"]
+    end
+
+    %% Consumer section
+    subgraph C[" "]
+        direction TB
+        loop["loop"]
+        journal["journal"]
+        logic["handle logic"]
+        state["state"]
+        timers["sortedTimers"]
+        tick["tickCommand"]
+        spawn["spawn tick interval"]
+
+        spawn --> tick
+        logic --> state
+        state --> timers
+    end
+
+    %% Connections
+    p1 -->|"publish command"| Q
+    p2 -->|"publish command"| Q
+    p3 -->|"publish command"| Q
+
+    Q -->|"consume"| loop
+    loop --> journal
+    journal --> logic
+
+    tick -->|"publish"| Q
+```
 
 ## Stacks
 

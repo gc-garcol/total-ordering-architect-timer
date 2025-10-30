@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -138,7 +137,6 @@ public class OrderBookService {
         if (queryPosts.getMaxPrice() != null) {
             postStream = postStream.filter(post -> post.getAmount().compareTo(queryPosts.getMaxPrice()) <= 0);
         }
-//        postStream = postStream.sorted(Comparator.comparingLong(Post::getId).reversed());
         postStream = postStream.skip(queryPosts.getOffset()).limit(queryPosts.getLimit());
         List<PostDto> posts = postStream.map(PostDto::from).toList();
         QueryPostsResult result = new QueryPostsResult();
@@ -193,9 +191,7 @@ public class OrderBookService {
     }
 
     private RequestResult getOrders(QueryOrders queryOrders) {
-        List<OrderDto> orders = orderBookRepository.getOrders().values().stream()
-                .sorted(Comparator.comparingLong(Order::getId).reversed()) //
-                .skip(queryOrders.getOffset()) //
+        List<OrderDto> orders = orderBookRepository.getOrders().values().stream().skip(queryOrders.getOffset()) //
                 .limit(queryOrders.getLimit()).map(OrderDto::from).toList();
         QueryOrdersResult result = new QueryOrdersResult();
         result.setCorrelationId(queryOrders.getCorrelationId());
