@@ -26,6 +26,13 @@ public class Post {
     PostType type = PostType.BUY;
 
     BigInteger amount;
+    BigInteger price;
+
+    BigInteger minQuote;
+    BigInteger maxQuote;
+
+    String     baseCurrency  = "BTC";
+    String     quoteCurrency = "USD";
 
     Set<Order> orders = new HashSet<>();
 }

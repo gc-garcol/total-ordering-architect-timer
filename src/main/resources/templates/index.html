@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Trading System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1e2329;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: #1e2329;
+        }
+
+        /* Header */
+        .header {
+            background-color: #1e2329;
+            border-bottom: 1px solid #2b3139;
+            padding: 0 20px;
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f0b90b;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #848e9c;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #ffffff;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .search-btn,
+        .lang-btn {
+            background: none;
+            border: none;
+            color: #848e9c;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: #f0b90b;
+            color: #000000;
+        }
+
+        .btn-primary:hover {
+            background-color: #e5b30a;
+        }
+
+        /* P2P Navigation */
+        .p2p-nav {
+            background-color: #1e2329;
+            border-bottom: 1px solid #2b3139;
+            padding: 0 20px;
+        }
+
+        .p2p-nav-content {
+            display: flex;
+            align-items: center;
+            height: 50px;
+        }
+
+        .p2p-modes {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .p2p-mode {
+            color: #848e9c;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 0;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .p2p-mode.active {
+            color: #f0b90b;
+        }
+
+        .p2p-mode.active::after {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #f0b90b;
+        }
+
+        .p2p-help {
+            margin-left: auto;
+            color: #848e9c;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px 20px;
+        }
+
+        .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        /* Trading Controls */
+        .trading-controls {
+            background-color: #2b3139;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .toggle-group {
+            display: flex;
+            background-color: #1e2329;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .toggle-btn {
+            padding: 8px 20px;
+            background: none;
+            border: none;
+            color: #848e9c;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background-color: #474d57;
+            color: #ffffff;
+        }
+
+        .crypto-tabs {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .crypto-tab {
+            padding: 6px 12px;
+            background: none;
+            border: 1px solid #474d57;
+            border-radius: 20px;
+            color: #848e9c;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .crypto-tab.active {
+            background-color: #f0b90b;
+            color: #000000;
+            border-color: #f0b90b;
+        }
+
+        .input-field {
+            background-color: #1e2329;
+            border: 1px solid #474d57;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #ffffff;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .select-field {
+            background-color: #1e2329;
+            border: 1px solid #474d57;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .filter-btn {
+            background-color: #1e2329;
+            border: 1px solid #474d57;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #848e9c;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* posts Table */
+        .posts-section {
+            background-color: #1e2329;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            background-color: #2b3139;
+            display: grid;
+            grid-template-columns: 1fr 120px 200px 150px 120px;
+            gap: 20px;
+            padding: 15px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #848e9c;
+            border-bottom: 1px solid #474d57;
+        }
+
+        .posts-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .offer-row {
+            display: grid;
+            grid-template-columns: 1fr 120px 200px 150px 120px;
+            gap: 20px;
+            padding: 20px;
+            border-bottom: 1px solid #2b3139;
+            transition: background-color 0.3s;
+            align-items: center;
+        }
+
+        .offer-row:hover {
+            background-color: #2b3139;
+        }
+
+        .offer-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Advertiser Info */
+        .advertiser-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .advertiser-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f0b90b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .advertiser-details h4 {
+            font-size: 14px;
+            color: #ffffff;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .verified-badge {
+            background-color: #f0b90b;
+            color: #000000;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .advertiser-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #848e9c;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .stat-icon {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Price */
+        .price-info {
+            color: #f0b90b;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .price-label {
+            font-size: 12px;
+            color: #848e9c;
+        }
+
+        /* Available/Limit */
+        .availability-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .available-amount {
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        .order-limit {
+            font-size: 12px;
+            color: #848e9c;
+        }
+
+        /* Payment */
+        .payment-info {
+            font-size: 14px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .payment-method {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .payment-icon {
+            width: 16px;
+            height: 16px;
+            background-color: #00d4aa;
+            border-radius: 3px;
+        }
+
+        /* Trade Button */
+        .trade-btn {
+            background-color: #00d4aa;
+            color: #000000;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .trade-btn:hover {
+            background-color: #00b49a;
+        }
+
+        /* Verification Warning */
+        .verification-warning {
+            background-color: #2b3139;
+            border: 1px solid #f0b90b;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .warning-icon {
+            color: #f0b90b;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .warning-text {
+            color: #848e9c;
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+
+            .table-header,
+            .offer-row {
+                grid-template-columns: 1fr 100px 150px 120px 100px;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .trading-controls {
+                padding: 15px;
+            }
+
+            .table-header {
+                display: none;
+            }
+
+            .offer-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .advertiser-info {
+                justify-content: space-between;
+            }
+
+            .price-info,
+            .availability-info,
+            .payment-info,
+            .trade-btn {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .price-info::before {
+                content: 'Price: ';
+                color: #848e9c;
+                font-weight: 600;
+            }
+
+            .availability-info::before {
+                content: 'Available: ';
+                color: #848e9c;
+                font-weight: 600;
+            }
+
+            .payment-info::before {
+                content: 'Payment: ';
+                color: #848e9c;
+                font-weight: 600;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="container">
+        <!-- Header -->
+        <header class="header">
+            <nav class="header-nav">
+                <div class="logo">BINANCE</div>
+                <ul class="nav-links">
+                    <li><a href="#buy-crypto">Buy Crypto</a></li>
+                    <li><a href="#markets">Markets</a></li>
+                    <li><a href="#trade">Trade</a></li>
+                    <li><a href="#futures">Futures</a></li>
+                    <li><a href="#earn">Earn</a></li>
+                    <li><a href="#square">Square</a></li>
+                    <li><a href="#more">More</a></li>
+                </ul>
+                <div class="header-actions">
+                    <button class="search-btn">🔍</button>
+                    <button class="lang-btn">🌐</button>
+                    <a href="#login" class="btn" style="color: #848e9c;">Log In</a>
+                    <a href="#signup" class="btn btn-primary">Sign Up</a>
+                </div>
+            </nav>
+        </header>
+
+        <!-- P2P Navigation -->
+        <div class="p2p-nav">
+            <div class="p2p-nav-content">
+                <div class="p2p-modes">
+                    <a href="#express" class="p2p-mode">Express</a>
+                    <a href="#p2p" class="p2p-mode active">P2P</a>
+                    <a href="#block" class="p2p-mode">Block</a>
+                </div>
+                <a href="#help" class="p2p-help">P2P Help Center</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">P2P Trading</h1>
+            </div>
+
+            <!-- Trading Controls -->
+            <div class="trading-controls">
+                <div class="control-row">
+                    <div class="toggle-group">
+                        <button class="toggle-btn active">Buy</button>
+                        <button class="toggle-btn">Sell</button>
+                    </div>
+
+                    <div class="crypto-tabs">
+                        <button class="crypto-tab">USDT</button>
+                        <button class="crypto-tab active">BTC</button>
+                        <button class="crypto-tab">USDC</button>
+                        <button class="crypto-tab">ETH</button>
+                        <button class="crypto-tab">ADA</button>
+                        <button class="crypto-tab">BNB</button>
+                        <button class="crypto-tab">DOGE</button>
+                        <button class="crypto-tab">SOL</button>
+                        <button class="crypto-tab">XRP</button>
+                        <button class="crypto-tab">MATIC</button>
+                        <button class="crypto-tab">DOT</button>
+                        <button class="crypto-tab">LTC</button>
+                        <button class="crypto-tab">BCH</button>
+                        <button class="crypto-tab">LUNA</button>
+                        <button class="crypto-tab">More</button>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <input type="text" class="input-field" placeholder="Transaction amount" value="200,000.00">
+
+                    <select class="select-field">
+                        <option>$ USD</option>
+                        <option>USD</option>
+                        <option>EUR</option>
+                        <option>GBP</option>
+                    </select>
+
+                    <button class="filter-btn">
+                        All payment methods
+                        <span style="margin-left: 5px;">▼</span>
+                    </button>
+
+                    <button class="filter-btn">
+                        Sort By Price ▼
+                    </button>
+
+                    <button class="filter-btn">
+                        ⚙️ More
+                    </button>
+                </div>
+            </div>
+
+            <!-- posts Table -->
+            <div class="posts-section">
+                <div class="table-header">
+                    <div>Advertisers</div>
+                    <div>Price</div>
+                    <div>Available/Order Limit</div>
+                    <div>Payment</div>
+                    <div>Trade</div>
+                </div>
+
+                <div class="posts-list" v-if="posts && posts.length > 0">
+                    <div class="offer-row" v-for="post in posts" :key="post.id">
+                        <div class="advertiser-info">
+                            <div class="advertiser-avatar">A</div>
+                            <div class="advertiser-details">
+                                <h4>
+                                    Al_Hamza_Trader_S {{ post.ownerId }}
+                                    <span class="verified-badge">✓</span>
+                                </h4>
+                                <div class="advertiser-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-icon">👍</span>
+                                        <span>96.89%</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-icon">⏱</span>
+                                        <span>539 orders</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-icon">📊</span>
+                                        <span>15 min</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="price-info">
+                            <div>$ {{ post.price }}</div>
+                            <div class="price-label">{{ post.baseCurrency }}</div>
+                        </div>
+
+                        <div class="availability-info">
+                            <div class="available-amount">{{ formatAmount(post.amount) }} {{ post.baseCurrency }}</div>
+                            <div class="order-limit">{{ formatAmount(post.minQuote) }} USD - {{ formatAmount(post.maxQuote) }} USD</div>
+                        </div>
+
+                        <div class="payment-info">
+                            <div class="payment-method">
+                                <div class="payment-icon"></div>
+                                <span>Bank Transfer</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button class="trade-btn">Buy {{ post.baseCurrency }}</button>
+                            <div style="font-size: 11px; color: #848e9c; margin-top: 4px; text-align: center;">Requires
+                                Verification</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script th:inline="javascript">
+        const { createApp, ref } = Vue
+
+        createApp({
+            setup() {
+                // Get data from Thymeleaf and pass to Vue
+                const posts = ref(/*[[${posts}]]*/[]);
+                const totalPost = ref(/*[[${totalPost}]]*/ 0);
+
+                const formatAmount = (amount) => {
+                    if (!amount) return '0';
+                    // Handle BigInteger conversion
+                    return amount.toString ? amount.toString() : amount;
+                };
+
+                return {
+                    posts,
+                    totalPost,
+                    formatAmount
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+
+</html>

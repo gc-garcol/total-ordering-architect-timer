@@ -39,6 +39,9 @@ public class Bootstrap {
         post.setOwnerId(100L);
         post.setAmount(BigInteger.valueOf(1_000L));
         post.setType(PostType.BUY);
+        post.setPrice(BigInteger.valueOf(101_000L));
+        post.setMinQuote(BigInteger.valueOf(300L));
+        post.setMaxQuote(BigInteger.valueOf(500L));
         orderBookRepository.store(post);
 
         log.info("Init rocksDB");

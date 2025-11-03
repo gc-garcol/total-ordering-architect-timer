@@ -128,21 +128,26 @@ public class OrderBookService {
         return result;
     }
 
-    private RequestResult getPosts(QueryPosts queryPosts) {
+    public RequestResult getPosts(QueryPosts queryPosts) {
         Stream<Post> postStream = orderBookRepository.getPosts().values().stream();
+        Stream<Post> countStream = orderBookRepository.getPosts().values().stream();
+
         if (queryPosts.getMinPrice() != null) {
             postStream = postStream.filter(post -> post.getAmount().compareTo(queryPosts.getMinPrice()) >= 0);
+            countStream = countStream.filter(post -> post.getAmount().compareTo(queryPosts.getMinPrice()) <= 0);
         }
 
         if (queryPosts.getMaxPrice() != null) {
             postStream = postStream.filter(post -> post.getAmount().compareTo(queryPosts.getMaxPrice()) <= 0);
+            countStream = countStream.filter(post -> post.getAmount().compareTo(queryPosts.getMaxPrice()) >= 0);
         }
+
         postStream = postStream.skip(queryPosts.getOffset()).limit(queryPosts.getLimit());
         List<PostDto> posts = postStream.map(PostDto::from).toList();
         QueryPostsResult result = new QueryPostsResult();
         result.setCorrelationId(queryPosts.getCorrelationId());
         result.setPosts(posts);
-        result.setTotal(orderBookRepository.getPosts().size());
+        result.setTotal((int) countStream.count());
         return result;
     }
 
@@ -190,7 +195,7 @@ public class OrderBookService {
         return result;
     }
 
-    private RequestResult getOrders(QueryOrders queryOrders) {
+    public RequestResult getOrders(QueryOrders queryOrders) {
         List<OrderDto> orders = orderBookRepository.getOrders().values().stream().skip(queryOrders.getOffset()) //
                 .limit(queryOrders.getLimit()).map(OrderDto::from).toList();
         QueryOrdersResult result = new QueryOrdersResult();
