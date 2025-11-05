@@ -1,0 +1,153 @@
+# Project Constitution
+## Principles for Code Quality, User Experience Consistency, and Performance
+
+---
+
+## 1. Code Quality Principles
+
+### 1.1 Determinism and Correctness
+- **Deterministic Execution**: All business logic must produce identical results for identical command sequences, regardless of execution timing or order
+- **Immutable State Transitions**: State changes must be predictable and verifiable
+- **Command Idempotency**: Commands must be safely retryable without side effects
+- **Error-Free Logic**: Critical paths must handle all edge cases and fail gracefully
+
+### 1.2 Code Maintainability
+- **Clear Package Structure**: Follow established package organization (controller, service, repository, model)
+- **Single Responsibility**: Each class and method must have one clear purpose
+- **Meaningful Naming**: Use descriptive names that express intent without requiring comments
+- **Lombok Usage**: Leverage Lombok annotations (`@RequiredArgsConstructor`, `@Slf4j`) to reduce boilerplate while maintaining readability
+- **JavaDoc Documentation**: Document public APIs, complex algorithms, and domain-specific logic with `@author` and `@since` tags
+
+### 1.3 Code Consistency
+- **Standard Java Conventions**: Follow Java naming conventions (PascalCase for classes, camelCase for methods/variables)
+- **Repository Pattern**: Maintain clear separation between interfaces and implementations (`*RepositoryImpl` suffix)
+- **CQRS Separation**: Maintain clear distinction between commands and queries in the transport layer
+- **Exception Handling**: Use custom exceptions (`LogicException`) for domain-specific errors
+
+### 1.4 Testability and Reliability
+- **Testable Design**: Structure code to be easily testable with clear dependencies
+- **Null Safety**: Handle null values explicitly; avoid `NullPointerException` in production paths
+- **Resource Management**: Properly manage RocksDB connections and native resources
+- **Error Context**: Provide meaningful error messages and context for debugging
+
+---
+
+## 2. User Experience Consistency Principles
+
+### 2.1 API Design Consistency
+- **RESTful Conventions**: Follow RESTful principles for endpoint naming and HTTP methods
+- **Consistent Response Formats**: Standardize response structures across all endpoints
+- **Request/Response DTOs**: Use dedicated payload classes (`CreateOrderRequest`, `QueryOrdersResult`) for all API interactions
+- **Swagger Documentation**: All endpoints must be documented with OpenAPI annotations for Swagger UI
+
+### 2.2 Error Handling and Feedback
+- **Consistent Error Responses**: Use standardized error response format across all endpoints
+- **Meaningful Error Messages**: Provide clear, actionable error messages that help users understand and resolve issues
+- **HTTP Status Codes**: Use appropriate HTTP status codes (200, 201, 400, 404, 500) consistently
+- **Validation Feedback**: Return specific validation errors for invalid input with field-level details
+
+### 2.3 API Usability
+- **Intuitive Endpoint Names**: Use clear, self-documenting endpoint paths (`/api/orders`, `/api/posts`)
+- **Request Mapper**: Centralize request-to-command mapping logic in `RequestMapper` for consistency
+- **Response Completeness**: Include all necessary data in responses to minimize client round-trips
+- **Versioning Strategy**: Plan for API versioning to maintain backward compatibility
+
+### 2.4 Documentation and Discoverability
+- **Swagger UI**: Maintain up-to-date API documentation accessible at `/swagger`
+- **Clear Examples**: Provide example requests and responses in documentation
+- **API Contracts**: Define clear contracts for request/response formats
+- **Error Documentation**: Document all possible error responses and their meanings
+
+---
+
+## 3. Performance Requirements
+
+### 3.1 Determinism and Correctness (Critical)
+- **Total Ordering Guarantee**: Command processing must maintain strict total ordering
+- **Deterministic State**: State must be identical for identical command sequences: `f(command[i -> j], timestampX) == f(command[i -> j], timestampY)`
+- **Journaling Requirements**: All commands must be persisted to RocksDB before state updates
+- **Timer Consistency**: Tick commands must be processed deterministically to maintain timeout accuracy
+
+### 3.2 Low Latency and Throughput
+- **High-Performance Data Structures**: Leverage JCTools and Agrona for concurrent operations
+- **Virtual Threads**: Utilize Java virtual threads (`spring.threads.virtual.enabled: true`) for efficient I/O operations
+- **Batch Processing**: Process commands in configurable batches (`batchConsume`, `batchHandle`) for optimal throughput
+- **Efficient Serialization**: Use byte-level serialization for command logs to minimize overhead
+
+### 3.3 Resource Efficiency
+- **RocksDB Optimization**: Configure RocksDB for optimal read/write performance
+- **Memory Management**: Avoid unnecessary object allocations in hot paths
+- **Native Access**: Properly configure native access (`--enable-native-access=ALL-UNNAMED`) for RocksDB
+- **Connection Pooling**: Reuse connections and resources efficiently
+
+### 3.4 Scalability
+- **Concurrent Processing**: Design for concurrent command processing where determinism allows
+- **Queue Management**: Optimize command queue consumption and handling
+- **Tick Interval Configuration**: Allow configurable tick intervals (`tickIntervalMillis`) for different load scenarios
+- **State Snapshot Support**: Implement efficient snapshot mechanisms for recovery and state management
+
+### 3.5 Performance Monitoring
+- **Logging Strategy**: Use structured logging with appropriate log levels (`@Slf4j`)
+- **Performance Metrics**: Track command processing latency, throughput, and queue depths
+- **Resource Monitoring**: Monitor RocksDB performance, memory usage, and thread pool utilization
+- **Bottleneck Identification**: Design for observability to identify performance bottlenecks
+
+---
+
+## 4. Cross-Cutting Concerns
+
+### 4.1 Architecture Patterns
+- **Repository Abstraction**: Maintain clear separation between repository interfaces and RocksDB implementations
+- **Service Layer**: Encapsulate business logic in service classes
+- **Event-Driven Design**: Use domain events (`OrderCreated`, `PostCreated`) for decoupled communication
+- **Command/Query Separation**: Maintain clear separation between commands and queries
+
+### 4.2 Configuration Management
+- **Externalized Configuration**: Use `application.yaml` for all configuration
+- **Configuration Properties**: Use `@ConfigurationProperties` classes (`ConsumerVariables`, `RocksDBVariables`) for type-safe configuration
+- **Environment-Specific Settings**: Support different configurations for development, testing, and production
+
+### 4.3 Data Integrity
+- **Command Log Persistence**: Ensure all commands are persisted before processing
+- **State Recovery**: Support recovery from RocksDB command logs
+- **Transaction Safety**: Maintain data consistency even under failure scenarios
+- **Backup and Recovery**: Design for data recovery and system resilience
+
+---
+
+## 5. Development Workflow
+
+### 5.1 Code Review Standards
+- Verify determinism is maintained in all changes
+- Ensure performance implications are considered
+- Check API consistency and documentation updates
+- Validate error handling and edge cases
+
+### 5.2 Testing Requirements
+- Manual testing via Swagger UI for all new endpoints
+- Verify deterministic behavior with identical command sequences
+- Performance testing for high-throughput scenarios
+- Recovery testing for system resilience
+
+### 5.3 Documentation Updates
+- Update Swagger documentation for API changes
+- Update README for architectural changes
+- Maintain JavaDoc for public APIs
+- Document configuration changes
+
+---
+
+## 6. Enforcement
+
+These principles are not optional guidelines but fundamental requirements for all code contributions. When in doubt:
+1. **Prioritize determinism** over performance optimizations that might compromise correctness
+2. **Maintain consistency** in API design and error handling
+3. **Measure performance** before optimizing; profile and verify improvements
+4. **Document decisions** that deviate from these principles with clear justification
+
+---
+
+*Last Updated: 2025*
+*Project: total-ordering-architect-timer*
+*Version: 1.0*
+

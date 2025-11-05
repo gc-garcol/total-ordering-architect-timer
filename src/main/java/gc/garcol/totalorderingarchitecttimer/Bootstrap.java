@@ -37,7 +37,7 @@ public class Bootstrap {
         Post post = new Post();
         post.setId(1L);
         post.setOwnerId(100L);
-        post.setAmount(BigInteger.valueOf(1_000L));
+        post.setAvailableAmount(BigInteger.valueOf(1_000L));
         post.setType(PostType.BUY);
         post.setPrice(BigInteger.valueOf(101_000L));
         post.setMinQuote(BigInteger.valueOf(300L));

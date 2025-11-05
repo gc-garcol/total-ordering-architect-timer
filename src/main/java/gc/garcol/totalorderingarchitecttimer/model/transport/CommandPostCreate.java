@@ -1,6 +1,5 @@
 package gc.garcol.totalorderingarchitecttimer.model.transport;
 
-import gc.garcol.totalorderingarchitecttimer.model.domain.PostType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;

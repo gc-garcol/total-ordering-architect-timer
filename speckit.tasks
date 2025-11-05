@@ -1,0 +1,663 @@
+# P2P Cryptocurrency Marketplace - Implementation Tasks
+## Task Breakdown from Implementation Plan
+
+**Status Legend:**
+- ⬜ Pending
+- 🟡 In Progress
+- ✅ Completed
+- ❌ Blocked
+- ⏸️ Paused
+
+---
+
+## Phase 1: Foundation & Enhanced Models (Week 1-2)
+
+### Task 1.1: Enhanced Domain Models
+**Priority**: Critical | **Estimated**: 3 days | **Dependencies**: None
+
+#### Subtask 1.1.1: Enhanced User Model
+- [x] ✅ Create `UserVerificationStatus` enum
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/UserVerificationStatus.java`
+  - Values: UNVERIFIED, PHONE_VERIFIED, EMAIL_VERIFIED, KYC_PENDING, KYC_VERIFIED, VERIFIED_MERCHANT
+
+- [x] ✅ Enhance `User.java` domain model
+  - Add: `username`, `email`, `phoneNumber`
+  - Add: `verificationStatus` (UserVerificationStatus)
+  - Add: `cryptoBalance`, `fiatBalance` (separate from `amount`)
+  - Add: `rating` (BigDecimal), `completedTrades`, `cancelRate` (Integer)
+  - Add: `registrationDate`, `lastActiveDate` (LocalDateTime)
+  - Add: `isActive`, `isBanned` (Boolean)
+  - Update Lombok annotations
+  - Update `@EqualsAndHashCode` to include new identity fields
+  - Added backward compatibility for existing `amount` field
+
+#### Subtask 1.1.2: Payment Method Model
+- [x] ✅ Create `PaymentMethodType` enum
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/PaymentMethodType.java`
+  - Values: BANK_TRANSFER, PAYPAL, WISE, REVOLUT, CASH_APP, ZELLE, VENMO, OTHER
+
+- [x] ✅ Create `PaymentMethod` domain class
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/PaymentMethod.java`
+  - Fields: id, userId, type, accountName, accountNumber, bankName, branchName, additionalInfo, isActive, createdAt, verifiedAt
+  - Use Lombok annotations
+  - Add `@EqualsAndHashCode` with id
+
+#### Subtask 1.1.3: Enhanced Post Model
+- [x] ✅ Create `PostStatus` enum
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/PostStatus.java`
+  - Values: ACTIVE, PAUSED, CLOSED, EXPIRED
+
+- [x] ✅ Enhance `Post.java` domain model
+  - Add: `availableAmount` (BigInteger)
+  - Add: `minTradeAmount`, `maxTradeAmount` (BigInteger)
+  - Add: `acceptedPaymentMethods` (Set<PaymentMethodType>)
+  - Add: `terms` (String), `paymentTimeLimit` (Integer), `autoReleaseTime` (Integer)
+  - Add: `status` (PostStatus)
+  - Add: `viewCount`, `orderCount` (Integer)
+  - Add: `createdAt`, `updatedAt`, `expiresAt` (LocalDateTime)
+  - Update Lombok annotations
+  - Added backward compatibility for existing `amount`, `minQuote`, `maxQuote` fields
+
+#### Subtask 1.1.4: Enhanced Order Model
+- [x] ✅ Enhance `Order.java` domain model
+  - Add: `buyerId`, `sellerId` (Long)
+  - Add: `price`, `totalPrice` (BigInteger)
+  - Add: `paymentMethod` (PaymentMethodType), `paymentMethodId` (Long)
+  - Add: `paymentReference`, `paymentProof` (String)
+  - Add: `paidAt`, `confirmedAt`, `completedAt`, `canceledAt` (LocalDateTime)
+  - Add: `appealId` (Long), `cancelReason`, `notes` (String)
+  - Update Lombok annotations
+  - Added backward compatibility for existing `ownerId` field
+
+#### Subtask 1.1.5: Appeal Model
+- [x] ✅ Create `AppealReason` enum
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/AppealReason.java`
+  - Values: PAYMENT_NOT_RECEIVED, PAYMENT_NOT_CONFIRMED, WRONG_AMOUNT, FRAUDULENT, OTHER
+
+- [x] ✅ Create `AppealStatus` enum
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/AppealStatus.java`
+  - Values: PENDING, IN_REVIEW, RESOLVED, CLOSED
+
+- [x] ✅ Create `Appeal` domain class
+  - File: `src/main/java/gc/garcol/totalorderingarchitecttimer/model/domain/Appeal.java`
+  - Fields: id, orderId, initiatorId, reason, description, evidenceUrls, status, assignedAdminId, adminResolution, createdAt, resolvedAt
+  - Use Lombok annotations
+
+---
+
+### Task 1.2: Enhanced Command Types
+**Priority**: Critical | **Estimated**: 2 days | **Dependencies**: Task 1.1
+
+#### Subtask 1.2.1: Extend CommandType Enum
+- [ ] ⬜ Update `CommandType.java`
+  - Add: CREATE_USER, UPDATE_USER_PROFILE, VERIFY_USER
+  - Add: DEPOSIT_CRYPTO, WITHDRAW_CRYPTO
+  - Add: CREATE_PAYMENT_METHOD, UPDATE_PAYMENT_METHOD, DELETE_PAYMENT_METHOD
+  - Add: UPDATE_POST, PAUSE_POST, RESUME_POST, CLOSE_POST
+  - Add: CONFIRM_ORDER, CANCEL_ORDER, APPEAL_ORDER
+  - Add: CREATE_APPEAL, RESOLVE_APPEAL
+  - Assign unique IDs to each command type
+
+#### Subtask 1.2.2: Create User Management Commands
+- [ ] ⬜ Create `CommandCreateUser.java`
+- [ ] ⬜ Create `CommandUpdateUserProfile.java`
+- [ ] ⬜ Create `CommandVerifyUser.java`
+- [ ] ⬜ Create `CommandDepositCrypto.java`
+- [ ] ⬜ Create `CommandWithdrawCrypto.java`
+  - Each command must implement `Command` interface
+  - Implement `toBytes()` and `fromBytes()` for RocksDB serialization
+  - Use `ByteBuffer` for efficient serialization
+
+#### Subtask 1.2.3: Create Payment Method Commands
+- [ ] ⬜ Create `CommandCreatePaymentMethod.java`
+- [ ] ⬜ Create `CommandUpdatePaymentMethod.java`
+- [ ] ⬜ Create `CommandDeletePaymentMethod.java`
+
+#### Subtask 1.2.4: Create Post Management Commands
+- [ ] ⬜ Create `CommandUpdatePost.java`
+- [ ] ⬜ Create `CommandPausePost.java`
+- [ ] ⬜ Create `CommandResumePost.java`
+- [ ] ⬜ Create `CommandClosePost.java`
+- [ ] ⬜ Enhance `CommandPostCreate.java` with new fields
+
+#### Subtask 1.2.5: Create Order Management Commands
+- [ ] ⬜ Create `CommandConfirmOrder.java`
+- [ ] ⬜ Create `CommandCancelOrder.java`
+- [ ] ⬜ Create `CommandAppealOrder.java`
+- [ ] ⬜ Enhance `CommandOrderCreate.java` with new fields
+- [ ] ⬜ Enhance `CommandOrderMarkAsPaid.java` with payment details
+
+#### Subtask 1.2.6: Create Appeal Commands
+- [ ] ⬜ Create `CommandCreateAppeal.java`
+- [ ] ⬜ Create `CommandResolveAppeal.java`
+
+#### Subtask 1.2.7: Update Command Parser
+- [ ] ⬜ Update `CommandLogParser.java`
+  - Add parsing cases for all new command types
+  - Ensure deterministic deserialization
+  - Test serialization/deserialization round-trips
+
+---
+
+### Task 1.3: Enhanced Query Types
+**Priority**: High | **Estimated**: 2 days | **Dependencies**: Task 1.1
+
+#### Subtask 1.3.1: User Queries
+- [ ] ⬜ Create `QueryUserById.java`
+- [ ] ⬜ Create `QueryUserStats.java`
+- [ ] ⬜ Create `QueryUserByIdResult.java`
+- [ ] ⬜ Create `QueryUserStatsResult.java`
+
+#### Subtask 1.3.2: Payment Method Queries
+- [ ] ⬜ Create `QueryPaymentMethods.java`
+- [ ] ⬜ Create `QueryPaymentMethodById.java`
+- [ ] ⬜ Create `QueryPaymentMethodsResult.java`
+
+#### Subtask 1.3.3: Enhanced Post Queries
+- [ ] ⬜ Enhance `QueryPosts.java` with filters
+  - Add: price range, payment method, user rating, status filters
+- [ ] ⬜ Create `QueryPostsWithFilters.java` (if needed)
+- [ ] ⬜ Enhance `QueryPostsResult.java` with pagination
+
+#### Subtask 1.3.4: Enhanced Order Queries
+- [ ] ⬜ Create `QueryOrdersByUser.java`
+- [ ] ⬜ Enhance `QueryOrders.java` with filters
+- [ ] ⬜ Create `QueryOrderById.java`
+- [ ] ⬜ Create corresponding result classes
+
+#### Subtask 1.3.5: Appeal Queries
+- [ ] ⬜ Create `QueryAppealById.java`
+- [ ] ⬜ Create `QueryAppealsByOrder.java`
+- [ ] ⬜ Create corresponding result classes
+
+---
+
+## Phase 2: Repository Layer Enhancement (Week 2-3)
+
+### Task 2.1: Enhanced OrderBookRepository
+**Priority**: Critical | **Estimated**: 3 days | **Dependencies**: Task 1.1
+
+#### Subtask 2.1.1: Payment Method Repository
+- [ ] ⬜ Create `PaymentMethodRepository.java` interface
+  - Methods: save, findById, findByUserId, findByUserIdAndType, delete
+- [ ] ⬜ Create `PaymentMethodRockDBRepositoryImpl.java`
+  - Implement using RocksDB with column families
+  - Support efficient queries by userId and type
+  - Use deterministic key generation
+
+#### Subtask 2.1.2: Enhanced User Repository
+- [ ] ⬜ Update `OrderBookRepository.java` interface
+  - Add: findUserByEmail, findUserByUsername
+  - Add: updateUserVerification, updateUserRating
+  - Add: getUserStats, getUserBalance
+- [ ] ⬜ Update repository implementation
+  - Implement new methods using RocksDB
+  - Ensure efficient indexing
+
+#### Subtask 2.1.3: Enhanced Post Repository
+- [ ] ⬜ Update `OrderBookRepository.java` interface
+  - Add: findPostsWithFilters (price, payment method, rating, status)
+  - Add: updatePostStatus, updatePostAvailableAmount
+  - Add: findPostsByUserId, findActivePosts
+- [ ] ⬜ Update repository implementation
+  - Implement filtering with efficient queries
+  - Add pagination support
+
+#### Subtask 2.1.4: Enhanced Order Repository
+- [ ] ⬜ Update `OrderBookRepository.java` interface
+  - Add: findOrdersByUserId, findOrdersByBuyerId, findOrdersBySellerId
+  - Add: findOrdersByStatus, findOrdersByPostId
+  - Add: updateOrderStatus, linkAppealToOrder
+- [ ] ⬜ Update repository implementation
+  - Implement efficient queries with indexing
+
+#### Subtask 2.1.5: Appeal Repository
+- [ ] ⬜ Create `AppealRepository.java` interface
+  - Methods: save, findById, findByOrderId, findByStatus
+- [ ] ⬜ Create `AppealRockDBRepositoryImpl.java`
+  - Implement using RocksDB with column families
+  - Support efficient queries by orderId and status
+
+---
+
+### Task 2.2: Balance Management
+**Priority**: Critical | **Estimated**: 2 days | **Dependencies**: Task 1.1
+
+#### Subtask 2.2.1: Balance Model
+- [ ] ⬜ Create `UserBalance.java` class
+  - Fields: availableBalance, reservedBalance, totalBalance
+  - Methods: getAvailable(), getReserved(), getTotal()
+
+#### Subtask 2.2.2: Balance Operations in Repository
+- [ ] ⬜ Update `OrderBookRepository.java` interface
+  - Add: depositCrypto, withdrawCrypto, depositFiat, withdrawFiat
+  - Add: reserveCrypto, releaseCrypto, reserveFiat, releaseFiat
+  - Add: transferCrypto, transferFiat
+- [ ] ⬜ Update repository implementation
+  - Implement atomic balance operations
+  - Use RocksDB batch writes for atomicity
+  - Validate sufficient balance before operations
+  - Prevent negative balances
+
+#### Subtask 2.2.3: Balance Service
+- [ ] ⬜ Create `BalanceService.java`
+  - Methods: getBalance, validateBalance, deposit, withdraw, reserve, release, transfer
+  - All operations must be deterministic
+  - All operations must be logged as commands
+
+---
+
+## Phase 3: Service Layer Enhancement (Week 3-4)
+
+### Task 3.1: Enhanced OrderBookService
+**Priority**: Critical | **Estimated**: 5 days | **Dependencies**: Task 2.1, Task 2.2
+
+#### Subtask 3.1.1: User Management Command Handlers
+- [ ] ⬜ Implement `handleCreateUser` in OrderBookService
+  - Validate input, create user with initial balance, log command
+- [ ] ⬜ Implement `handleUpdateUserProfile` in OrderBookService
+  - Validate user exists, update profile fields, log command
+- [ ] ⬜ Implement `handleVerifyUser` in OrderBookService
+  - Update verification status, log command
+- [ ] ⬜ Implement `handleDepositCrypto` in OrderBookService
+  - Validate user, increase balance, log command
+- [ ] ⬜ Implement `handleWithdrawCrypto` in OrderBookService
+  - Validate user, check sufficient balance, decrease balance, log command
+
+#### Subtask 3.1.2: Payment Method Command Handlers
+- [ ] ⬜ Implement `handleCreatePaymentMethod` in OrderBookService
+  - Validate user exists, create payment method, log command
+- [ ] ⬜ Implement `handleUpdatePaymentMethod` in OrderBookService
+  - Validate payment method exists and belongs to user, update, log command
+- [ ] ⬜ Implement `handleDeletePaymentMethod` in OrderBookService
+  - Validate, soft delete, log command
+
+#### Subtask 3.1.3: Enhanced Post Command Handlers
+- [ ] ⬜ Enhance `handleCreatePost` in OrderBookService
+  - Add validation for payment methods, terms, limits
+  - Reserve crypto for SELL posts
+  - Validate user verification status
+- [ ] ⬜ Implement `handleUpdatePost` in OrderBookService
+  - Validate post exists and belongs to user, update, log command
+- [ ] ⬜ Implement `handlePausePost` in OrderBookService
+  - Update status to PAUSED, log command
+- [ ] ⬜ Implement `handleResumePost` in OrderBookService
+  - Update status to ACTIVE, log command
+- [ ] ⬜ Implement `handleClosePost` in OrderBookService
+  - Update status to CLOSED, release reserves, log command
+
+#### Subtask 3.1.4: Enhanced Order Command Handlers
+- [ ] ⬜ Enhance `handleCreateOrder` in OrderBookService
+  - Validate post, user, payment method
+  - Reserve amounts (crypto for SELL, fiat for BUY)
+  - Update post available amount
+  - Set expiration time
+- [ ] ⬜ Enhance `handleMarkOrderPaid` in OrderBookService
+  - Validate order status, update to PAID
+  - Store payment details, start auto-release timer
+- [ ] ⬜ Implement `handleConfirmOrder` in OrderBookService
+  - Validate order status, update to CONFIRMED
+  - Release escrow, update balances
+  - Update user statistics
+- [ ] ⬜ Implement `handleCancelOrder` in OrderBookService
+  - Validate, update to CANCELED
+  - Release reserves, update statistics
+- [ ] ⬜ Implement `handleAppealOrder` in OrderBookService
+  - Create appeal, update order status to APPEAL
+  - Freeze order assets
+
+#### Subtask 3.1.5: Appeal Command Handlers
+- [ ] ⬜ Implement `handleCreateAppeal` in OrderBookService
+  - Validate order, create appeal record
+- [ ] ⬜ Implement `handleResolveAppeal` in OrderBookService
+  - Admin resolution, release assets based on decision
+  - Update order status
+
+#### Subtask 3.1.6: Enhanced Tick Command Handler
+- [ ] ⬜ Enhance `handleTicker` in OrderBookService
+  - Auto-release logic for PAID orders
+  - Post expiration handling
+  - Order timeout handling (OPEN → CANCELED)
+  - Use deterministic time from tick command
+
+#### Subtask 3.1.7: Update Command Handler Switch
+- [ ] ⬜ Update `handle(Command)` method in OrderBookService
+  - Add cases for all new command types
+  - Use pattern matching (Java 25 switch expressions)
+
+---
+
+### Task 3.2: Query Handlers
+**Priority**: High | **Estimated**: 3 days | **Dependencies**: Task 2.1
+
+#### Subtask 3.2.1: User Query Handlers
+- [ ] ⬜ Implement `handleQueryUserById` in OrderBookService
+- [ ] ⬜ Implement `handleQueryUserStats` in OrderBookService
+
+#### Subtask 3.2.2: Payment Method Query Handlers
+- [ ] ⬜ Implement `handleQueryPaymentMethods` in OrderBookService
+- [ ] ⬜ Implement `handleQueryPaymentMethodById` in OrderBookService
+
+#### Subtask 3.2.3: Enhanced Post Query Handlers
+- [ ] ⬜ Enhance `handleQueryPosts` in OrderBookService
+  - Add filtering logic for price, payment method, rating, status
+- [ ] ⬜ Enhance `handleQueryPostById` in OrderBookService
+  - Include additional post details
+
+#### Subtask 3.2.4: Enhanced Order Query Handlers
+- [ ] ⬜ Implement `handleQueryOrdersByUser` in OrderBookService
+- [ ] ⬜ Enhance `handleQueryOrders` in OrderBookService
+  - Add filtering by status, date range, user
+- [ ] ⬜ Implement `handleQueryOrderById` in OrderBookService
+
+#### Subtask 3.2.5: Appeal Query Handlers
+- [ ] ⬜ Implement `handleQueryAppealById` in OrderBookService
+- [ ] ⬜ Implement `handleQueryAppealsByOrder` in OrderBookService
+
+#### Subtask 3.2.6: Update Query Handler Switch
+- [ ] ⬜ Update `handle(Query)` method in OrderBookService
+  - Add cases for all new query types
+
+---
+
+## Phase 4: API Layer (Week 4-5)
+
+### Task 4.1: User Management APIs
+**Priority**: High | **Estimated**: 2 days | **Dependencies**: Task 3.1
+
+#### Subtask 4.1.1: User Registration & Profile APIs
+- [ ] ⬜ Create `UserRestController.java`
+- [ ] ⬜ Create `POST /api/v1/users/register` endpoint
+  - Request: CreateUserRequest
+  - Response: RequestResult with userId
+- [ ] ⬜ Create `GET /api/v1/users/{userId}` endpoint
+- [ ] ⬜ Create `PUT /api/v1/users/{userId}/profile` endpoint
+- [ ] ⬜ Create `GET /api/v1/users/{userId}/stats` endpoint
+
+#### Subtask 4.1.2: Verification APIs
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/verify-phone` endpoint
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/verify-email` endpoint
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/kyc-submit` endpoint
+
+#### Subtask 4.1.3: Balance APIs
+- [ ] ⬜ Create `GET /api/v1/users/{userId}/balance` endpoint
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/deposit` endpoint
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/withdraw` endpoint
+- [ ] ⬜ Create `GET /api/v1/users/{userId}/transactions` endpoint
+
+#### Subtask 4.1.4: Request/Response DTOs
+- [ ] ⬜ Create `CreateUserRequest.java`
+- [ ] ⬜ Create `UpdateUserProfileRequest.java`
+- [ ] ⬜ Create `DepositRequest.java`
+- [ ] ⬜ Create `WithdrawRequest.java`
+- [ ] ⬜ Update `RequestMapper.java` with new mappers
+
+---
+
+### Task 4.2: Payment Method APIs
+**Priority**: High | **Estimated**: 2 days | **Dependencies**: Task 3.1
+
+#### Subtask 4.2.1: Payment Method CRUD APIs
+- [ ] ⬜ Create `PaymentMethodRestController.java`
+- [ ] ⬜ Create `GET /api/v1/users/{userId}/payment-methods` endpoint
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/payment-methods` endpoint
+- [ ] ⬜ Create `PUT /api/v1/users/{userId}/payment-methods/{id}` endpoint
+- [ ] ⬜ Create `DELETE /api/v1/users/{userId}/payment-methods/{id}` endpoint
+- [ ] ⬜ Create `POST /api/v1/users/{userId}/payment-methods/{id}/verify` endpoint
+
+#### Subtask 4.2.2: Request/Response DTOs
+- [ ] ⬜ Create `CreatePaymentMethodRequest.java`
+- [ ] ⬜ Create `UpdatePaymentMethodRequest.java`
+- [ ] ⬜ Update `RequestMapper.java` with payment method mappers
+
+---
+
+### Task 4.3: Enhanced Post APIs
+**Priority**: Critical | **Estimated**: 3 days | **Dependencies**: Task 3.1
+
+#### Subtask 4.3.1: Post Management APIs
+- [ ] ⬜ Enhance `POST /api/v1/posts` endpoint in OrderBookRestController
+  - Add new fields to CreatePostRequest
+- [ ] ⬜ Enhance `GET /api/v1/posts` endpoint
+  - Add filtering parameters (price, payment method, rating, etc.)
+- [ ] ⬜ Enhance `GET /api/v1/posts/{postId}` endpoint
+- [ ] ⬜ Create `PUT /api/v1/posts/{postId}` endpoint
+- [ ] ⬜ Create `DELETE /api/v1/posts/{postId}` endpoint
+- [ ] ⬜ Create `POST /api/v1/posts/{postId}/pause` endpoint
+- [ ] ⬜ Create `POST /api/v1/posts/{postId}/resume` endpoint
+- [ ] ⬜ Create `GET /api/v1/users/{userId}/posts` endpoint
+
+#### Subtask 4.3.2: Request/Response DTOs
+- [ ] ⬜ Enhance `CreatePostRequest.java` with new fields
+- [ ] ⬜ Enhance `QueryPostsRequest.java` with filter fields
+- [ ] ⬜ Update `RequestMapper.java` with enhanced mappers
+
+---
+
+### Task 4.4: Enhanced Order APIs
+**Priority**: Critical | **Estimated**: 3 days | **Dependencies**: Task 3.1
+
+#### Subtask 4.4.1: Order Management APIs
+- [ ] ⬜ Enhance `POST /api/v1/orders` endpoint
+  - Add new fields to CreateOrderRequest
+- [ ] ⬜ Enhance `GET /api/v1/orders/{orderId}` endpoint
+- [ ] ⬜ Create `GET /api/v1/users/{userId}/orders` endpoint
+- [ ] ⬜ Enhance `POST /api/v1/orders/{orderId}/mark-paid` endpoint
+  - Add payment details to request
+- [ ] ⬜ Create `POST /api/v1/orders/{orderId}/confirm` endpoint
+- [ ] ⬜ Create `POST /api/v1/orders/{orderId}/cancel` endpoint
+- [ ] ⬜ Create `POST /api/v1/orders/{orderId}/appeal` endpoint
+
+#### Subtask 4.4.2: Request/Response DTOs
+- [ ] ⬜ Enhance `CreateOrderRequest.java` with new fields
+- [ ] ⬜ Create `MarkOrderPaidRequest.java`
+- [ ] ⬜ Create `ConfirmOrderRequest.java`
+- [ ] ⬜ Create `CancelOrderRequest.java`
+- [ ] ⬜ Update `RequestMapper.java` with new mappers
+
+---
+
+### Task 4.5: Appeal APIs
+**Priority**: Medium | **Estimated**: 2 days | **Dependencies**: Task 3.1
+
+#### Subtask 4.5.1: Appeal Management APIs
+- [ ] ⬜ Create `AppealRestController.java`
+- [ ] ⬜ Create `POST /api/v1/appeals` endpoint
+- [ ] ⬜ Create `GET /api/v1/appeals/{appealId}` endpoint
+- [ ] ⬜ Create `GET /api/v1/orders/{orderId}/appeal` endpoint
+- [ ] ⬜ Create `POST /api/v1/appeals/{appealId}/resolve` endpoint
+
+#### Subtask 4.5.2: Request/Response DTOs
+- [ ] ⬜ Create `CreateAppealRequest.java`
+- [ ] ⬜ Create `ResolveAppealRequest.java`
+- [ ] ⬜ Update `RequestMapper.java` with appeal mappers
+
+---
+
+## Phase 5: Advanced Features (Week 5-6)
+
+### Task 5.1: Auto-Release Mechanism
+**Priority**: Critical | **Estimated**: 2 days | **Dependencies**: Task 3.1
+
+#### Subtask 5.1.1: Enhanced Tick Command Handler
+- [ ] ⬜ Enhance `handleTicker` in OrderBookService
+  - Check orders in PAID status
+  - Calculate auto-release time based on order's autoReleaseTime
+  - If time exceeded and no appeal: execute confirm order logic
+  - Log auto-release as deterministic command
+
+#### Subtask 5.1.2: Deterministic Timing
+- [ ] ⬜ Ensure tick command uses deterministic time
+  - Verify CommandTick uses command sequence time, not wall clock
+  - Test deterministic auto-release behavior
+
+---
+
+### Task 5.2: Post Expiration
+**Priority**: Medium | **Estimated**: 1 day | **Dependencies**: Task 3.1
+
+#### Subtask 5.2.1: Expiration Handling
+- [ ] ⬜ Add expiration check to `handleTicker`
+  - Check posts with expiration time
+  - Auto-close expired posts
+  - Release reserved amounts
+  - Update post status to EXPIRED
+
+---
+
+### Task 5.3: Order Timeout Enhancement
+**Priority**: High | **Estimated**: 1 day | **Dependencies**: Task 3.1
+
+#### Subtask 5.3.1: Enhanced Timeout Logic
+- [ ] ⬜ Enhance timeout handling in `handleTicker`
+  - Different timeouts for different order statuses
+  - PAID status: check auto-release timeout
+  - OPEN status: check cancel timeout
+  - Use deterministic time from tick command
+
+---
+
+## Phase 6: Testing & Validation (Week 6-7)
+
+### Task 6.1: Deterministic Testing
+**Priority**: Critical | **Estimated**: 3 days | **Dependencies**: Phase 1-5
+
+#### Subtask 6.1.1: Test Identical Command Sequences
+- [ ] ⬜ Create `DeterministicTest.java`
+  - Test identical command sequences produce identical results
+  - Test state consistency after multiple runs
+  - Test with different command orders
+
+#### Subtask 6.1.2: Test State Recovery
+- [ ] ⬜ Create `StateRecoveryTest.java`
+  - Test recovery from RocksDB logs
+  - Verify state consistency after recovery
+  - Test snapshot and recovery
+
+#### Subtask 6.1.3: Test Concurrent Commands
+- [ ] ⬜ Test single-writer pattern
+  - Verify command processing order
+  - Test command queue behavior
+  - Test JCTools MpscLinkedQueue
+
+---
+
+### Task 6.2: Integration Testing
+**Priority**: High | **Estimated**: 3 days | **Dependencies**: Phase 1-5
+
+#### Subtask 6.2.1: Complete Order Lifecycle
+- [ ] ⬜ Create `OrderLifecycleTest.java`
+  - Test: CREATE → PAID → CONFIRMED → COMPLETED
+  - Test: CREATE → CANCELED
+  - Test: CREATE → PAID → APPEAL → RESOLVED
+  - Test all edge cases
+
+#### Subtask 6.2.2: Balance Management
+- [ ] ⬜ Create `BalanceManagementTest.java`
+  - Test deposit, withdraw, reserve, release
+  - Test balance validation
+  - Test atomic operations
+  - Test negative balance prevention
+
+#### Subtask 6.2.3: Escrow System
+- [ ] ⬜ Create `EscrowTest.java`
+  - Test escrow for SELL posts
+  - Test escrow for BUY posts
+  - Test escrow release scenarios
+  - Test escrow cancellation
+
+---
+
+### Task 6.3: Performance Testing
+**Priority**: Medium | **Estimated**: 2 days | **Dependencies**: Phase 1-5
+
+#### Subtask 6.3.1: Load Testing
+- [ ] ⬜ Create `LoadTest.java`
+  - Test high-order volume (10,000+ orders/second)
+  - Test concurrent users
+  - Measure latency
+  - Test throughput
+
+#### Subtask 6.3.2: RocksDB Performance
+- [ ] ⬜ Create `PerformanceTest.java`
+  - Test write performance
+  - Test read performance
+  - Test batch operations
+  - Test query performance
+
+---
+
+## Phase 7: Documentation & Polish (Week 7)
+
+### Task 7.1: API Documentation
+**Priority**: High | **Estimated**: 2 days | **Dependencies**: Phase 4
+
+#### Subtask 7.1.1: Swagger Documentation
+- [ ] ⬜ Add OpenAPI annotations to all controllers
+  - @Operation, @Parameter, @ApiResponse annotations
+  - Document all endpoints
+- [ ] ⬜ Add schema annotations to all DTOs
+  - @Schema annotations with descriptions
+  - Document request/response models
+- [ ] ⬜ Add examples to all endpoints
+- [ ] ⬜ Document error responses
+
+---
+
+### Task 7.2: Code Documentation
+**Priority**: Medium | **Estimated**: 1 day | **Dependencies**: All phases
+
+#### Subtask 7.2.1: JavaDoc
+- [ ] ⬜ Document all public APIs
+  - Service methods
+  - Repository methods
+  - Controller endpoints
+- [ ] ⬜ Document complex business logic
+  - Order workflow
+  - Escrow system
+  - Auto-release mechanism
+- [ ] ⬜ Document domain models
+  - Domain entities
+  - Enums
+  - Value objects
+
+---
+
+### Task 7.3: README Updates
+**Priority**: Medium | **Estimated**: 1 day | **Dependencies**: All phases
+
+#### Subtask 7.3.1: Update README
+- [ ] ⬜ Document new features
+  - P2P marketplace features
+  - API endpoints
+  - Architecture updates
+- [ ] ⬜ Update API examples
+  - Add examples for new endpoints
+  - Update existing examples
+- [ ] ⬜ Update architecture diagrams
+  - Update mermaid diagrams
+  - Add new diagrams if needed
+
+---
+
+## Task Summary
+
+**Total Tasks**: 150+ subtasks  
+**Estimated Duration**: 7 weeks  
+**Critical Path**: Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
+
+**Key Dependencies:**
+- Phase 2 depends on Phase 1 (domain models)
+- Phase 3 depends on Phase 2 (repositories)
+- Phase 4 depends on Phase 3 (services)
+- Phase 5 depends on Phase 3 (services)
+- Phase 6 depends on Phases 1-5 (implementation)
+- Phase 7 depends on Phase 4 (APIs)
+
+---
+
+*Last Updated: 2025*
+*Project: total-ordering-architect-timer*
+*Version: 1.0*
+*Task Breakdown: P2P Cryptocurrency Marketplace*
+

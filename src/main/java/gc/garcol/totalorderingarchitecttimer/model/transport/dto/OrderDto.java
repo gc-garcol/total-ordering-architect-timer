@@ -25,7 +25,7 @@ public class OrderDto {
         OrderDto orderDto = new OrderDto();
         orderDto.setId(order.getId());
         orderDto.setPostId(order.getPostId());
-        orderDto.setOwnerId(order.getOwnerId());
+        orderDto.setOwnerId(order.getBuyerId());
         orderDto.setAmount(order.getAmount());
         orderDto.setStatus(order.getStatus());
         orderDto.setExpireTime(order.getExpireTime());

@@ -1,5 +1,6 @@
 package gc.garcol.totalorderingarchitecttimer.controller.payload;
 
+import gc.garcol.totalorderingarchitecttimer.model.transport.QueryOrders;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -14,4 +15,11 @@ public class QueryOrdersRequest {
 
     @Schema(description = "Maximum number of records to return", example = "20", defaultValue = "20")
     int limit;
+
+    public QueryOrders toQuery() {
+        QueryOrders queryOrders = new QueryOrders();
+        queryOrders.setLimit(this.getLimit());
+        queryOrders.setOffset(this.getOffset());
+        return queryOrders;
+    }
 }

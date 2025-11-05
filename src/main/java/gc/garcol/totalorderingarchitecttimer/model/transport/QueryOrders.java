@@ -2,7 +2,6 @@ package gc.garcol.totalorderingarchitecttimer.model.transport;
 
 import lombok.Data;
 
-import java.math.BigInteger;
 import java.util.UUID;
 
 /**

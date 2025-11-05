@@ -1,6 +1,5 @@
 .gradle
 .cursor
-.serena
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/

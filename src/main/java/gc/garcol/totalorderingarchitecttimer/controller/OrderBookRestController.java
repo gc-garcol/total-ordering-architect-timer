@@ -1,6 +1,9 @@
 package gc.garcol.totalorderingarchitecttimer.controller;
 
-import gc.garcol.totalorderingarchitecttimer.controller.payload.*;
+import gc.garcol.totalorderingarchitecttimer.controller.payload.CreateOrderRequest;
+import gc.garcol.totalorderingarchitecttimer.controller.payload.CreatePostRequest;
+import gc.garcol.totalorderingarchitecttimer.controller.payload.QueryOrdersRequest;
+import gc.garcol.totalorderingarchitecttimer.controller.payload.QueryPostsRequest;
 import gc.garcol.totalorderingarchitecttimer.model.transport.*;
 import gc.garcol.totalorderingarchitecttimer.service.RequestPublisher;
 import lombok.RequiredArgsConstructor;
@@ -21,31 +24,31 @@ public class OrderBookRestController {
 
     @PostMapping("/buy-post")
     CompletableFuture<RequestResult> createPost(@RequestBody CreatePostRequest request) {
-        CommandPostCreate command = RequestMapper.toCommand(request);
+        CommandPostCreate command = request.toCommand();
         return requestPublisher.publishRequest(command);
     }
 
     @GetMapping("/buy-post/{id}")
     CompletableFuture<RequestResult> getPostById(@PathVariable("id") Long id) {
-        QueryPostById queryPostById = RequestMapper.toQueryPostById(id);
+        QueryPostById queryPostById = new QueryPostById(id);
         return requestPublisher.publishRequest(queryPostById);
     }
 
     @GetMapping("/buy-post")
     CompletableFuture<RequestResult> getPosts(QueryPostsRequest request) {
-        QueryPosts queryPosts = RequestMapper.toQueryPosts(request);
+        QueryPosts queryPosts = request.toQuery();
         return requestPublisher.publishRequest(queryPosts);
     }
 
     @PostMapping("/buy-order")
     CompletableFuture<RequestResult> create(@RequestBody CreateOrderRequest request) {
-        CommandOrderCreate command = RequestMapper.toCommand(request);
+        CommandOrderCreate command = request.toCommand();
         return requestPublisher.publishRequest(command);
     }
 
     @GetMapping("/buy-order")
     CompletableFuture<RequestResult> getOrders(QueryOrdersRequest request) {
-        QueryOrders queryOrders = RequestMapper.toQueryOrders(request);
+        QueryOrders queryOrders = request.toQuery();
         return requestPublisher.publishRequest(queryOrders);
     }
 

@@ -1,7 +1,10 @@
 package gc.garcol.totalorderingarchitecttimer.controller.payload;
 
+import gc.garcol.totalorderingarchitecttimer.model.transport.QueryPosts;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
+import java.math.BigInteger;
 
 /**
  * @author thaivc
@@ -22,4 +25,19 @@ public class QueryPostsRequest {
 
     @Schema(description = "Maximum number of records to return", example = "20", defaultValue = "20")
     int limit;
+
+    public QueryPosts toQuery() {
+        QueryPosts queryPosts = new QueryPosts();
+        if (this.minPrice != null) {
+            queryPosts.setMinPrice(BigInteger.valueOf(this.minPrice));
+        }
+        if (this.maxPrice != null) {
+            queryPosts.setMaxPrice(BigInteger.valueOf(this.maxPrice));
+        }
+
+        queryPosts.setLimit(limit);
+        queryPosts.setOffset(offset);
+
+        return queryPosts;
+    }
 }

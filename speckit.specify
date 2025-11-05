@@ -1,0 +1,651 @@
+# P2P Cryptocurrency Marketplace Specification
+## Binance P2P-Style Trading Platform
+
+---
+
+## Executive Summary
+
+Build a peer-to-peer (P2P) cryptocurrency marketplace where users can buy and sell cryptocurrency directly with each other. The system must maintain determinism and total ordering guarantees while providing a secure, user-friendly trading experience similar to Binance P2P.
+
+---
+
+## 1. Core Domain Models
+
+### 1.1 Enhanced User Model
+```java
+User {
+    Long id;
+    String username;
+    String email;
+    String phoneNumber;
+    BigInteger cryptoBalance;      // Available crypto balance
+    BigInteger fiatBalance;        // Available fiat balance
+    UserVerificationStatus verificationStatus;
+    BigDecimal rating;             // Average rating (0.0 - 5.0)
+    Integer completedTrades;       // Total completed trades
+    Integer cancelRate;            // Percentage of canceled orders
+    LocalDateTime registrationDate;
+    LocalDateTime lastActiveDate;
+    Boolean isActive;
+    Boolean isBanned;
+}
+```
+
+**User Verification Status:**
+- `UNVERIFIED` - No verification
+- `PHONE_VERIFIED` - Phone number verified
+- `EMAIL_VERIFIED` - Email verified
+- `KYC_PENDING` - KYC submitted, pending review
+- `KYC_VERIFIED` - KYC approved
+- `VERIFIED_MERCHANT` - High-volume merchant status
+
+### 1.2 Payment Method Model
+```java
+PaymentMethod {
+    Long id;
+    Long userId;
+    PaymentMethodType type;        // BANK_TRANSFER, PAYPAL, WISE, etc.
+    String accountName;
+    String accountNumber;
+    String bankName;               // For bank transfers
+    String branchName;
+    String additionalInfo;        // JSON for flexible data
+    Boolean isActive;
+    LocalDateTime createdAt;
+    LocalDateTime verifiedAt;
+}
+```
+
+**Payment Method Types:**
+- `BANK_TRANSFER` - Bank wire transfer
+- `PAYPAL` - PayPal account
+- `WISE` - Wise (formerly TransferWise)
+- `REVOLUT` - Revolut account
+- `CASH_APP` - Cash App
+- `ZELLE` - Zelle
+- `VENMO` - Venmo
+- `OTHER` - Other payment methods
+
+### 1.3 Enhanced Post Model
+```java
+Post {
+    Long id;
+    Long ownerId;
+    PostType type;                 // BUY or SELL
+    String baseCurrency;           // BTC, ETH, USDT, etc.
+    String quoteCurrency;         // USD, EUR, GBP, etc.
+    BigInteger totalAmount;        // Total crypto available
+    BigInteger availableAmount;   // Remaining crypto available
+    BigInteger price;              // Price per unit in quote currency
+    BigInteger minTradeAmount;    // Minimum order amount
+    BigInteger maxTradeAmount;     // Maximum order amount
+    Set<PaymentMethodType> acceptedPaymentMethods;
+    String terms;                  // Trading terms and conditions
+    Integer paymentTimeLimit;      // Minutes to complete payment
+    Integer autoReleaseTime;       // Minutes for auto-release after payment
+    PostStatus status;             // ACTIVE, PAUSED, CLOSED
+    Integer viewCount;
+    Integer orderCount;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
+    LocalDateTime expiresAt;
+}
+```
+
+**Post Status:**
+- `ACTIVE` - Post is live and accepting orders
+- `PAUSED` - Temporarily paused by user
+- `CLOSED` - Closed by user or system
+- `EXPIRED` - Auto-closed due to expiration
+
+### 1.4 Enhanced Order Model
+```java
+Order {
+    Long id;
+    Long postId;
+    Long buyerId;                  // User creating the order
+    Long sellerId;                 // Post owner
+    BigInteger amount;             // Crypto amount
+    BigInteger price;              // Price per unit at order time
+    BigInteger totalPrice;         // Total fiat amount (amount * price)
+    OrderStatus status;
+    PaymentMethodType paymentMethod;
+    Long paymentMethodId;
+    String paymentReference;       // Payment transaction reference
+    String paymentProof;            // URL or reference to payment proof
+    LocalDateTime createdAt;
+    LocalDateTime paidAt;          // When buyer marks as paid
+    LocalDateTime confirmedAt;     // When seller confirms payment
+    LocalDateTime completedAt;
+    LocalDateTime canceledAt;
+    LocalDateTime expireTime;       // Auto-cancel deadline
+    Long appealId;                 // If order is in dispute
+    String cancelReason;
+    String notes;                  // Additional notes from buyer/seller
+}
+```
+
+**Enhanced Order Status Flow:**
+```
+OPEN → PAID → CONFIRMED → COMPLETED
+  ↓      ↓        ↓
+CANCELED  APPEAL  APPEAL
+```
+
+**Order Status Details:**
+- `OPEN` - Order created, waiting for buyer to pay
+- `PAID` - Buyer marked as paid, waiting for seller confirmation
+- `CONFIRMED` - Seller confirmed payment, crypto released to buyer
+- `COMPLETED` - Order fully completed
+- `CANCELED` - Order canceled (by buyer, seller, or timeout)
+- `APPEAL` - Order in dispute resolution
+
+### 1.5 Dispute/Appeal Model
+```java
+Appeal {
+    Long id;
+    Long orderId;
+    Long initiatorId;              // User who opened the appeal
+    AppealReason reason;
+    String description;
+    List<String> evidenceUrls;     // Screenshots, documents
+    AppealStatus status;
+    Long assignedAdminId;
+    String adminResolution;
+    LocalDateTime createdAt;
+    LocalDateTime resolvedAt;
+}
+```
+
+**Appeal Reasons:**
+- `PAYMENT_NOT_RECEIVED` - Seller claims payment not received
+- `PAYMENT_NOT_CONFIRMED` - Buyer claims payment not confirmed
+- `WRONG_AMOUNT` - Payment amount mismatch
+- `FRAUDULENT` - Suspected fraud
+- `OTHER` - Other issues
+
+---
+
+## 2. API Endpoints
+
+### 2.1 User Management APIs
+
+#### 2.1.1 User Registration & Profile
+```
+POST   /api/v1/users/register
+GET    /api/v1/users/{userId}
+PUT    /api/v1/users/{userId}/profile
+GET    /api/v1/users/{userId}/stats        # Trading statistics
+POST   /api/v1/users/{userId}/verify-phone
+POST   /api/v1/users/{userId}/verify-email
+POST   /api/v1/users/{userId}/kyc-submit
+```
+
+#### 2.1.2 Balance Management
+```
+GET    /api/v1/users/{userId}/balance
+POST   /api/v1/users/{userId}/deposit     # Deposit crypto
+POST   /api/v1/users/{userId}/withdraw    # Withdraw crypto
+GET    /api/v1/users/{userId}/transactions # Transaction history
+```
+
+### 2.2 Payment Method APIs
+
+```
+GET    /api/v1/users/{userId}/payment-methods
+POST   /api/v1/users/{userId}/payment-methods
+PUT    /api/v1/users/{userId}/payment-methods/{paymentMethodId}
+DELETE /api/v1/users/{userId}/payment-methods/{paymentMethodId}
+POST   /api/v1/users/{userId}/payment-methods/{paymentMethodId}/verify
+```
+
+### 2.3 Post Management APIs
+
+```
+POST   /api/v1/posts                        # Create new post
+GET    /api/v1/posts                        # Search/filter posts
+GET    /api/v1/posts/{postId}               # Get post details
+PUT    /api/v1/posts/{postId}               # Update post
+DELETE /api/v1/posts/{postId}               # Close/delete post
+POST   /api/v1/posts/{postId}/pause         # Pause post
+POST   /api/v1/posts/{postId}/resume        # Resume post
+GET    /api/v1/users/{userId}/posts          # Get user's posts
+```
+
+**Post Search Filters:**
+- Currency pair (baseCurrency, quoteCurrency)
+- Post type (BUY/SELL)
+- Price range (minPrice, maxPrice)
+- Trade amount range (minTradeAmount, maxTradeAmount)
+- Payment methods
+- User rating (minRating)
+- Payment time limit
+- Location/region (if applicable)
+
+### 2.4 Order Management APIs
+
+```
+POST   /api/v1/orders                       # Create order from post
+GET    /api/v1/orders/{orderId}             # Get order details
+GET    /api/v1/users/{userId}/orders        # Get user's orders
+POST   /api/v1/orders/{orderId}/mark-paid   # Buyer marks as paid
+POST   /api/v1/orders/{orderId}/confirm     # Seller confirms payment
+POST   /api/v1/orders/{orderId}/cancel      # Cancel order
+POST   /api/v1/orders/{orderId}/appeal      # Open dispute
+GET    /api/v1/orders/{orderId}/messages    # Order chat messages
+POST   /api/v1/orders/{orderId}/messages    # Send message
+```
+
+### 2.5 Dispute/Appeal APIs
+
+```
+POST   /api/v1/appeals                      # Create appeal
+GET    /api/v1/appeals/{appealId}           # Get appeal details
+GET    /api/v1/orders/{orderId}/appeal      # Get order's appeal
+POST   /api/v1/appeals/{appealId}/resolve  # Admin resolution
+```
+
+### 2.6 Statistics & Analytics
+
+```
+GET    /api/v1/market/stats                 # Market statistics
+GET    /api/v1/market/price-history         # Price history for currency pair
+GET    /api/v1/market/trending-posts        # Trending posts
+```
+
+---
+
+## 3. Business Logic & Workflows
+
+### 3.1 Post Creation Workflow
+
+**Deterministic Command:** `CommandPostCreate`
+
+**Validation Rules:**
+1. User must be verified (at least email or phone)
+2. User must have sufficient balance (for SELL posts)
+3. Price must be within market range (configurable limits)
+4. Min trade amount ≤ Max trade amount
+5. At least one payment method must be selected
+6. Payment time limit must be reasonable (5-60 minutes)
+7. Auto-release time must be reasonable (15-1440 minutes)
+
+**State Changes:**
+- Reserve crypto from user balance (for SELL posts)
+- Create post with ACTIVE status
+- Generate post ID deterministically
+- Log command to RocksDB
+
+### 3.2 Order Creation Workflow
+
+**Deterministic Command:** `CommandOrderCreate`
+
+**Validation Rules:**
+1. Post must be ACTIVE and not expired
+2. Buyer cannot be the post owner
+3. Order amount must be within post's min/max range
+4. Post must have sufficient available amount
+5. Buyer must have sufficient fiat balance (for BUY orders)
+6. Payment method must be accepted by post
+7. Timeout must be reasonable (≤ post's payment time limit)
+
+**State Changes:**
+- Reserve order amount from post's available amount
+- Create order with OPEN status
+- Reserve fiat balance from buyer (for BUY orders)
+- Set expiration time based on payment time limit
+- Log command to RocksDB
+
+### 3.3 Order Payment Workflow
+
+**Deterministic Command:** `CommandOrderMarkAsPaid`
+
+**Validation Rules:**
+1. Order must be in OPEN status
+2. Order must not be expired
+3. Buyer must be the order owner
+4. Payment reference must be provided
+
+**State Changes:**
+- Update order status to PAID
+- Set paidAt timestamp
+- Start auto-release timer
+- Notify seller
+- Log command to RocksDB
+
+### 3.4 Order Confirmation Workflow
+
+**Deterministic Command:** `CommandOrderConfirm`
+
+**Validation Rules:**
+1. Order must be in PAID status
+2. Seller must be the post owner
+3. Order must not be in appeal
+
+**State Changes:**
+- Update order status to CONFIRMED
+- Release crypto to buyer (deduct from seller's reserve)
+- Release fiat to seller (deduct from buyer's reserve)
+- Update post's available amount
+- Update user statistics (completed trades, ratings)
+- Set confirmedAt timestamp
+- Log command to RocksDB
+
+### 3.5 Auto-Release Mechanism
+
+**Deterministic Command:** `CommandTick` (enhanced)
+
+**Logic:**
+- For orders in PAID status, check if auto-release time has passed
+- If auto-release time exceeded and no appeal:
+  - Automatically confirm payment (execute CommandOrderConfirm logic)
+  - Log automatic confirmation
+
+**Deterministic Behavior:**
+- Auto-release must be deterministic based on command sequence
+- Timer must use command tick time, not system clock
+
+### 3.6 Order Cancellation Workflow
+
+**Deterministic Command:** `CommandOrderCancel`
+
+**Validation Rules:**
+- Order can be canceled by buyer if OPEN
+- Order can be canceled by seller if OPEN
+- System can auto-cancel expired orders
+- Cannot cancel orders in APPEAL status
+
+**State Changes:**
+- Update order status to CANCELED
+- Release reserved amounts back to users
+- Update post's available amount
+- Update user statistics (cancel rate)
+- Set canceledAt timestamp
+- Log command to RocksDB
+
+### 3.7 Dispute Resolution Workflow
+
+**Deterministic Command:** `CommandOrderAppeal`
+
+**Validation Rules:**
+- Order must be in PAID or CONFIRMED status
+- User must be buyer or seller
+- Appeal must have reason and description
+
+**State Changes:**
+- Update order status to APPEAL
+- Create appeal record
+- Freeze order assets
+- Notify both parties
+- Log command to RocksDB
+
+**Admin Resolution:**
+- Admin reviews evidence
+- Admin makes decision (favor buyer, favor seller, or split)
+- Execute resolution command deterministically
+- Release assets based on decision
+
+---
+
+## 4. Escrow System
+
+### 4.1 Escrow Mechanism
+
+**For SELL Posts:**
+1. When post created: Reserve crypto from seller's balance
+2. When order created: Reserve order amount from post's reserve
+3. When order confirmed: Release crypto to buyer, release fiat to seller
+4. When order canceled: Return crypto to seller's balance
+
+**For BUY Posts:**
+1. When order created: Reserve fiat from buyer's balance
+2. When order confirmed: Release crypto to buyer, release fiat to seller
+3. When order canceled: Return fiat to buyer's balance
+
+**Deterministic Guarantees:**
+- All escrow operations must be logged as commands
+- Balance changes must be atomic within command execution
+- No double-spending possible due to total ordering
+
+### 4.2 Balance Management
+
+**User Balance Structure:**
+```java
+UserBalance {
+    BigInteger availableBalance;      // Available for trading
+    BigInteger reservedBalance;      // Reserved in active orders
+    BigInteger totalBalance;         // available + reserved
+}
+```
+
+**Balance Operations:**
+- All balance changes must be deterministic
+- Balance checks and updates must be atomic
+- Negative balances must be prevented
+
+---
+
+## 5. Security & Fraud Prevention
+
+### 5.1 Rate Limiting
+- Limit order creation per user per time period
+- Limit post creation per user per time period
+- Limit appeal creation per user per time period
+
+### 5.2 Anti-Fraud Measures
+- Monitor suspicious patterns (rapid orders, unusual amounts)
+- Flag users with high cancel rates
+- Require verification for large trades
+- Implement trading limits for unverified users
+
+### 5.3 Verification Requirements
+- **Basic Trading:** Email or phone verification required
+- **Medium Trades:** KYC verification required (amount threshold configurable)
+- **Large Trades:** Enhanced KYC and merchant verification
+
+### 5.4 Payment Verification
+- Validate payment references
+- Require payment proof for large amounts
+- Implement payment method verification
+
+---
+
+## 6. User Experience Features
+
+### 6.1 Messaging System
+- Real-time chat between buyer and seller during order
+- Message history stored per order
+- Notifications for new messages
+- File attachments for payment proof
+
+### 6.2 Notification System
+- Email notifications for order status changes
+- In-app notifications
+- SMS notifications for critical events (optional)
+
+### 6.3 Rating System
+- Post-trade rating (1-5 stars)
+- Rating affects user's overall rating
+- Rating history visible on user profile
+- Prevent rating manipulation
+
+### 6.4 Search & Discovery
+- Advanced filtering (price, payment method, user rating, etc.)
+- Sorting options (price, time, rating)
+- Saved searches
+- Favorite posts/users
+
+---
+
+## 7. Performance Requirements
+
+### 7.1 Deterministic Processing
+- All commands must be processed in total order
+- State transitions must be deterministic
+- Command logging to RocksDB must be synchronous
+- No race conditions in order processing
+
+### 7.2 Low Latency
+- Order creation: < 100ms
+- Order confirmation: < 50ms
+- Post search: < 200ms
+- Balance queries: < 50ms
+
+### 7.3 High Throughput
+- Support 10,000+ orders per second
+- Support 1,000+ concurrent active orders
+- Efficient batch processing for tick commands
+
+### 7.4 Scalability
+- Horizontal scaling of command processors
+- Efficient RocksDB usage for persistence
+- Caching layer for frequently accessed data (user profiles, posts)
+
+---
+
+## 8. Data Models - Command Types
+
+### 8.1 New Commands Required
+
+```java
+// User Management
+CREATE_USER
+UPDATE_USER_PROFILE
+VERIFY_USER
+DEPOSIT_CRYPTO
+WITHDRAW_CRYPTO
+
+// Payment Methods
+CREATE_PAYMENT_METHOD
+UPDATE_PAYMENT_METHOD
+DELETE_PAYMENT_METHOD
+VERIFY_PAYMENT_METHOD
+
+// Posts
+CREATE_POST
+UPDATE_POST
+PAUSE_POST
+RESUME_POST
+CLOSE_POST
+
+// Orders
+CREATE_ORDER
+MARK_ORDER_PAID
+CONFIRM_ORDER
+CANCEL_ORDER
+APPEAL_ORDER
+
+// Appeals
+CREATE_APPEAL
+RESOLVE_APPEAL
+
+// Enhanced Tick
+TICK (with auto-release logic)
+```
+
+---
+
+## 9. Implementation Phases
+
+### Phase 1: Core P2P Trading (MVP)
+- Enhanced user model with verification
+- Payment methods management
+- Enhanced post creation with payment methods
+- Enhanced order workflow (OPEN → PAID → CONFIRMED → COMPLETED)
+- Basic escrow system
+- Auto-release mechanism
+
+### Phase 2: User Experience
+- Messaging system
+- Rating system
+- Advanced search and filtering
+- Notification system
+- User statistics and profiles
+
+### Phase 3: Security & Disputes
+- Dispute/appeal system
+- Admin resolution workflow
+- Enhanced fraud detection
+- KYC integration
+- Trading limits and restrictions
+
+### Phase 4: Advanced Features
+- Multi-currency support expansion
+- Advanced analytics
+- Merchant features
+- API for third-party integrations
+- Mobile app support
+
+---
+
+## 10. Technical Constraints
+
+### 10.1 Determinism Requirements
+- All business logic must be deterministic
+- No external API calls in command processing
+- Use deterministic time sources (command tick time)
+- All state changes must be logged to RocksDB
+
+### 10.2 Architecture Compliance
+- Follow existing total ordering architecture
+- Use command/query separation (CQRS)
+- Maintain repository pattern
+- Use existing transport layer structure
+
+### 10.3 Code Quality
+- Follow speckit.constitution principles
+- Maintain API consistency
+- Comprehensive error handling
+- Proper logging and monitoring
+
+---
+
+## 11. Testing Requirements
+
+### 11.1 Deterministic Testing
+- Test identical command sequences produce identical results
+- Test state recovery from RocksDB logs
+- Test concurrent command processing
+- Test timer/expiration logic
+
+### 11.2 Integration Testing
+- Test complete order lifecycle
+- Test escrow balance management
+- Test dispute resolution workflow
+- Test auto-release mechanism
+
+### 11.3 Performance Testing
+- Load testing for high-order volume
+- Stress testing for concurrent users
+- Latency testing for critical paths
+- RocksDB performance testing
+
+---
+
+## 12. Success Metrics
+
+### 12.1 Functional Metrics
+- Order completion rate
+- Average time to complete trade
+- Dispute rate
+- User satisfaction (ratings)
+
+### 12.2 Performance Metrics
+- Command processing latency
+- System throughput
+- Error rate
+- Availability (uptime)
+
+### 12.3 Business Metrics
+- Daily active users
+- Trading volume
+- Number of active posts
+- User retention rate
+
+---
+
+*Last Updated: 2025*
+*Project: total-ordering-architect-timer*
+*Version: 1.0*
+*Specification Type: P2P Cryptocurrency Marketplace*
+

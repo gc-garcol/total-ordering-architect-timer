@@ -30,7 +30,7 @@ public class PostDto {
         dto.id = post.getId();
         dto.ownerId = post.getOwnerId();
         dto.type = post.getType();
-        dto.amount = post.getAmount();
+        dto.amount = post.getAvailableAmount();
         dto.price = post.getPrice();
         dto.minQuote = post.getMinQuote();
         dto.maxQuote = post.getMaxQuote();

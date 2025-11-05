@@ -97,7 +97,7 @@ public class OrderBookService {
             throw new LogicException("User not found");
         }
 
-        if (user.getAmount().compareTo(commandPostCreate.getAmount()) < 0) {
+        if (user.getCryptoBalance().compareTo(commandPostCreate.getAmount()) < 0) {
             throw new LogicException("Balance not enough");
         }
 
@@ -105,9 +105,9 @@ public class OrderBookService {
             throw new LogicException("Insufficient amount");
         }
 
-        user.setAmount(user.getAmount().subtract(commandPostCreate.getAmount()));
+        user.setCryptoBalance(user.getCryptoBalance().subtract(commandPostCreate.getAmount()));
         Post post = new Post();
-        post.setAmount(commandPostCreate.getAmount());
+        post.setAvailableAmount(commandPostCreate.getAmount());
         post.setId(orderBookRepository.getPostLastId() + 1);
         post.setOwnerId(user.getId());
         post.setType(PostType.BUY);
@@ -133,13 +133,13 @@ public class OrderBookService {
         Stream<Post> countStream = orderBookRepository.getPosts().values().stream();
 
         if (queryPosts.getMinPrice() != null) {
-            postStream = postStream.filter(post -> post.getAmount().compareTo(queryPosts.getMinPrice()) >= 0);
-            countStream = countStream.filter(post -> post.getAmount().compareTo(queryPosts.getMinPrice()) <= 0);
+            postStream = postStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMinPrice()) >= 0);
+            countStream = countStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMinPrice()) <= 0);
         }
 
         if (queryPosts.getMaxPrice() != null) {
-            postStream = postStream.filter(post -> post.getAmount().compareTo(queryPosts.getMaxPrice()) <= 0);
-            countStream = countStream.filter(post -> post.getAmount().compareTo(queryPosts.getMaxPrice()) >= 0);
+            postStream = postStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMaxPrice()) <= 0);
+            countStream = countStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMaxPrice()) >= 0);
         }
 
         postStream = postStream.skip(queryPosts.getOffset()).limit(queryPosts.getLimit());
@@ -170,7 +170,7 @@ public class OrderBookService {
             throw new LogicException("Insufficient amount");
         }
 
-        if (commandOrderCreate.getAmount().compareTo(post.getAmount()) > 0) {
+        if (commandOrderCreate.getAmount().compareTo(post.getAvailableAmount()) > 0) {
             throw new LogicException("Order amount is larger than post amount");
         }
 
@@ -182,7 +182,7 @@ public class OrderBookService {
         order.setId(orderBookRepository.getOrderLastId() + 1);
         order.setAmount(commandOrderCreate.getAmount());
         order.setPostId(post.getId());
-        order.setOwnerId(user.getId());
+        order.setBuyerId(user.getId());
         order.setAmount(commandOrderCreate.getAmount());
         order.setStatus(OrderStatus.OPEN);
         order.setExpireTime(System.currentTimeMillis() + commandOrderCreate.getTimeoutSecond() * 1_000);

@@ -1,0 +1,750 @@
+# P2P Cryptocurrency Marketplace Implementation Plan
+## Based on Single Writer Architecture with Java 25, Spring Boot 4, RocksDB, and JCTools
+
+---
+
+## Architecture Principles
+
+### Single Writer Pattern
+- **Single Command Processor**: All commands processed by single-threaded `RequestHandler.dutyCircle()`
+- **Deterministic Ordering**: Commands persisted to RocksDB before processing ensures total order
+- **JCTools MpscLinkedQueue**: Multiple producers (REST controllers), single consumer (RequestHandler)
+- **No Concurrent State Modifications**: All state changes happen in single-threaded context
+- **Virtual Threads for I/O**: Use Java 25 virtual threads for non-blocking callbacks
+
+### Technology Stack
+- **Java 25**: Latest language features, virtual threads, pattern matching
+- **Spring Boot 4.0.0-SNAPSHOT**: Web framework, dependency injection
+- **RocksDB 9.4.0**: Command log persistence, deterministic ordering
+- **JCTools 4.0.5**: High-performance lock-free queues (MpscLinkedQueue)
+- **Agrona 2.3.0**: High-performance data structures
+
+---
+
+## Phase 1: Foundation & Enhanced Models (Week 1-2)
+
+### Task 1.1: Enhanced Domain Models
+**Priority**: Critical  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **Enhanced User Model**
+   - Add fields: `username`, `email`, `phoneNumber`, `verificationStatus`, `rating`, `completedTrades`, `cancelRate`
+   - Create `UserVerificationStatus` enum
+   - Separate `cryptoBalance` and `fiatBalance`
+   - Add timestamps: `registrationDate`, `lastActiveDate`
+   - Add flags: `isActive`, `isBanned`
+
+2. **Payment Method Model**
+   - Create new `PaymentMethod` domain class
+   - Create `PaymentMethodType` enum
+   - Add repository interface and RocksDB implementation
+
+3. **Enhanced Post Model**
+   - Add: `availableAmount`, `minTradeAmount`, `maxTradeAmount`
+   - Add: `acceptedPaymentMethods` (Set<PaymentMethodType>)
+   - Add: `terms`, `paymentTimeLimit`, `autoReleaseTime`
+   - Add: `PostStatus` enum (ACTIVE, PAUSED, CLOSED, EXPIRED)
+   - Add: `viewCount`, `orderCount`, timestamps
+
+4. **Enhanced Order Model**
+   - Add: `buyerId`, `sellerId`
+   - Add: `price`, `totalPrice`
+   - Add: `paymentMethod`, `paymentMethodId`, `paymentReference`, `paymentProof`
+   - Add: multiple timestamps (`paidAt`, `confirmedAt`, `completedAt`, `canceledAt`)
+   - Add: `appealId`, `cancelReason`, `notes`
+
+5. **Appeal Model**
+   - Create new `Appeal` domain class
+   - Create `AppealReason` and `AppealStatus` enums
+
+**Files to Create:**
+- `src/main/java/.../model/domain/UserVerificationStatus.java`
+- `src/main/java/.../model/domain/PaymentMethod.java`
+- `src/main/java/.../model/domain/PaymentMethodType.java`
+- `src/main/java/.../model/domain/PostStatus.java`
+- `src/main/java/.../model/domain/Appeal.java`
+- `src/main/java/.../model/domain/AppealReason.java`
+- `src/main/java/.../model/domain/AppealStatus.java`
+- `src/main/java/.../repository/PaymentMethodRepository.java`
+- `src/main/java/.../repository/PaymentMethodRockDBRepositoryImpl.java`
+
+**Files to Modify:**
+- `src/main/java/.../model/domain/User.java` - Enhance with new fields
+- `src/main/java/.../model/domain/Post.java` - Enhance with new fields
+- `src/main/java/.../model/domain/Order.java` - Enhance with new fields
+- `src/main/java/.../model/domain/OrderStatus.java` - Verify statuses
+
+**Implementation Notes:**
+- Use Lombok annotations for boilerplate reduction
+- Ensure all models are immutable where possible (use builders)
+- Add `@EqualsAndHashCode` with proper field selection
+- Use `BigInteger` for all monetary amounts to avoid precision issues
+
+---
+
+### Task 1.2: Enhanced Command Types
+**Priority**: Critical  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Extend CommandType Enum**
+   - Add new command types:
+     - `CREATE_USER`, `UPDATE_USER_PROFILE`, `VERIFY_USER`
+     - `DEPOSIT_CRYPTO`, `WITHDRAW_CRYPTO`
+     - `CREATE_PAYMENT_METHOD`, `UPDATE_PAYMENT_METHOD`, `DELETE_PAYMENT_METHOD`
+     - `UPDATE_POST`, `PAUSE_POST`, `RESUME_POST`, `CLOSE_POST`
+     - `MARK_ORDER_PAID`, `CONFIRM_ORDER`, `CANCEL_ORDER`, `APPEAL_ORDER`
+     - `CREATE_APPEAL`, `RESOLVE_APPEAL`
+
+2. **Create Command Classes**
+   - Create command classes for each new command type
+   - Implement `Command` interface
+   - Implement `toBytes()` and `fromBytes()` for RocksDB serialization
+   - Use `ByteBuffer` for efficient serialization
+
+3. **Update CommandLogParser**
+   - Add cases for new command types
+   - Ensure deterministic deserialization
+
+**Files to Create:**
+- `src/main/java/.../model/transport/CommandCreateUser.java`
+- `src/main/java/.../model/transport/CommandUpdateUserProfile.java`
+- `src/main/java/.../model/transport/CommandVerifyUser.java`
+- `src/main/java/.../model/transport/CommandDepositCrypto.java`
+- `src/main/java/.../model/transport/CommandWithdrawCrypto.java`
+- `src/main/java/.../model/transport/CommandCreatePaymentMethod.java`
+- `src/main/java/.../model/transport/CommandUpdatePaymentMethod.java`
+- `src/main/java/.../model/transport/CommandDeletePaymentMethod.java`
+- `src/main/java/.../model/transport/CommandUpdatePost.java`
+- `src/main/java/.../model/transport/CommandPausePost.java`
+- `src/main/java/.../model/transport/CommandResumePost.java`
+- `src/main/java/.../model/transport/CommandClosePost.java`
+- `src/main/java/.../model/transport/CommandConfirmOrder.java`
+- `src/main/java/.../model/transport/CommandCancelOrder.java`
+- `src/main/java/.../model/transport/CommandAppealOrder.java`
+- `src/main/java/.../model/transport/CommandCreateAppeal.java`
+- `src/main/java/.../model/transport/CommandResolveAppeal.java`
+
+**Files to Modify:**
+- `src/main/java/.../model/transport/CommandType.java` - Add new types
+- `src/main/java/.../model/transport/CommandPostCreate.java` - Enhance with new fields
+- `src/main/java/.../model/transport/CommandOrderCreate.java` - Enhance with new fields
+- `src/main/java/.../model/transport/CommandOrderMarkAsPaid.java` - Enhance with payment details
+- `src/main/java/.../mapper/CommandLogParser.java` - Add parsing for new commands
+
+**Implementation Notes:**
+- Maintain backward compatibility with existing commands
+- Use deterministic serialization (same input = same bytes)
+- Keep serialization efficient (minimize byte array sizes)
+- Test serialization/deserialization round-trips
+
+---
+
+### Task 1.3: Enhanced Query Types
+**Priority**: High  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Create Query Classes**
+   - User queries: `QueryUserById`, `QueryUserByEmail`, `QueryUserStats`
+   - Payment method queries: `QueryPaymentMethods`, `QueryPaymentMethodById`
+   - Enhanced post queries: `QueryPostsWithFilters` (price, payment method, rating, etc.)
+   - Enhanced order queries: `QueryOrdersByUser`, `QueryOrderById`
+   - Appeal queries: `QueryAppealById`, `QueryAppealsByOrder`
+
+2. **Create Query Result Classes**
+   - Result DTOs for each query type
+   - Include pagination support where applicable
+
+**Files to Create:**
+- `src/main/java/.../model/transport/QueryUserById.java`
+- `src/main/java/.../model/transport/QueryUserStats.java`
+- `src/main/java/.../model/transport/QueryPaymentMethods.java`
+- `src/main/java/.../model/transport/QueryPostsWithFilters.java`
+- `src/main/java/.../model/transport/QueryOrdersByUser.java`
+- `src/main/java/.../model/transport/QueryAppealById.java`
+- Corresponding result classes
+
+**Files to Modify:**
+- `src/main/java/.../model/transport/QueryPosts.java` - Enhance with filters
+- `src/main/java/.../model/transport/QueryOrders.java` - Enhance with filters
+
+---
+
+## Phase 2: Repository Layer Enhancement (Week 2-3)
+
+### Task 2.1: Enhanced OrderBookRepository
+**Priority**: Critical  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **Payment Method Repository**
+   - Create `PaymentMethodRepository` interface
+   - Implement `PaymentMethodRockDBRepositoryImpl` using RocksDB
+   - Support CRUD operations
+   - Support querying by userId and type
+
+2. **Enhanced User Repository**
+   - Add methods for user verification
+   - Add balance management methods (with atomic operations)
+   - Add statistics queries
+   - Support user search and filtering
+
+3. **Enhanced Post Repository**
+   - Add filtering by payment method, price range, user rating
+   - Add status management (ACTIVE, PAUSED, CLOSED)
+   - Add pagination support
+   - Optimize queries for performance
+
+4. **Enhanced Order Repository**
+   - Add filtering by user, status, date range
+   - Add order statistics
+   - Support appeal linking
+
+5. **Appeal Repository**
+   - Create `AppealRepository` interface
+   - Implement `AppealRockDBRepositoryImpl`
+   - Support querying by orderId, status, userId
+
+**Files to Create:**
+- `src/main/java/.../repository/PaymentMethodRepository.java`
+- `src/main/java/.../repository/PaymentMethodRockDBRepositoryImpl.java`
+- `src/main/java/.../repository/AppealRepository.java`
+- `src/main/java/.../repository/AppealRockDBRepositoryImpl.java`
+
+**Files to Modify:**
+- `src/main/java/.../repository/OrderBookRepository.java` - Add new methods
+- `src/main/java/.../repository/CommandLogRockDBRepositoryImpl.java` - Verify no changes needed
+
+**Implementation Notes:**
+- Use RocksDB column families for different entity types
+- Implement efficient indexing for queries
+- Use RocksDB batch writes for atomic operations
+- Ensure thread-safety through single-writer pattern (no concurrent writes)
+- Use deterministic key generation
+
+---
+
+### Task 2.2: Balance Management
+**Priority**: Critical  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Balance Model**
+   - Create `UserBalance` class with `available`, `reserved`, `total`
+   - Ensure atomic balance operations
+
+2. **Balance Operations**
+   - Implement deposit (increase available)
+   - Implement withdraw (decrease available, validate sufficient balance)
+   - Implement reserve (move from available to reserved)
+   - Implement release (move from reserved to available)
+   - Implement transfer (atomic move between users)
+
+3. **Balance Validation**
+   - Prevent negative balances
+   - Validate sufficient balance before operations
+   - Ensure atomicity (all-or-nothing)
+
+**Files to Create:**
+- `src/main/java/.../model/domain/UserBalance.java`
+- `src/main/java/.../service/BalanceService.java`
+
+**Files to Modify:**
+- `src/main/java/.../repository/OrderBookRepository.java` - Add balance methods
+- `src/main/java/.../model/domain/User.java` - Update balance structure
+
+**Implementation Notes:**
+- All balance operations must be commands (logged to RocksDB)
+- Use deterministic balance calculations
+- Validate balances in command validation phase
+- Log balance changes for audit trail
+
+---
+
+## Phase 3: Service Layer Enhancement (Week 3-4)
+
+### Task 3.1: Enhanced OrderBookService
+**Priority**: Critical  
+**Estimated Time**: 5 days
+
+**Subtasks:**
+1. **User Management Commands**
+   - `handleCreateUser`: Create new user with initial balance
+   - `handleUpdateUserProfile`: Update user profile fields
+   - `handleVerifyUser`: Update verification status
+   - `handleDepositCrypto`: Add crypto to user balance
+   - `handleWithdrawCrypto`: Remove crypto from user balance (with validation)
+
+2. **Payment Method Commands**
+   - `handleCreatePaymentMethod`: Create payment method for user
+   - `handleUpdatePaymentMethod`: Update payment method details
+   - `handleDeletePaymentMethod`: Soft delete payment method
+
+3. **Enhanced Post Commands**
+   - `handleCreatePost`: Enhanced with payment methods, terms, limits
+   - `handleUpdatePost`: Update post details
+   - `handlePausePost`: Pause active post
+   - `handleResumePost`: Resume paused post
+   - `handleClosePost`: Close post and release reserves
+
+4. **Enhanced Order Commands**
+   - `handleCreateOrder`: Enhanced with validation, balance reservation
+   - `handleMarkOrderPaid`: Enhanced with payment details
+   - `handleConfirmOrder`: Release escrow, update balances
+   - `handleCancelOrder`: Release reserves, update statistics
+   - `handleAppealOrder`: Create appeal, freeze order
+
+5. **Appeal Commands**
+   - `handleCreateAppeal`: Create dispute
+   - `handleResolveAppeal`: Admin resolution, release assets
+
+6. **Enhanced Tick Command**
+   - Auto-release logic for orders in PAID status
+   - Post expiration handling
+   - Order timeout handling
+
+**Files to Modify:**
+- `src/main/java/.../service/OrderBookService.java` - Add all handlers
+
+**Implementation Notes:**
+- All handlers must be deterministic
+- Use single-writer pattern (all in RequestHandler thread)
+- Validate all inputs before state changes
+- Log all state changes through RocksDB
+- Use atomic operations for balance changes
+- Handle errors gracefully with proper error messages
+
+---
+
+### Task 3.2: Query Handlers
+**Priority**: High  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **User Queries**
+   - `handleQueryUserById`: Get user details
+   - `handleQueryUserStats`: Get user statistics
+
+2. **Payment Method Queries**
+   - `handleQueryPaymentMethods`: Get user's payment methods
+
+3. **Enhanced Post Queries**
+   - `handleQueryPostsWithFilters`: Filter by price, payment method, rating, etc.
+   - `handleQueryPostById`: Get post details
+
+4. **Enhanced Order Queries**
+   - `handleQueryOrdersByUser`: Get user's orders with filters
+   - `handleQueryOrderById`: Get order details
+
+5. **Appeal Queries**
+   - `handleQueryAppealById`: Get appeal details
+
+**Files to Modify:**
+- `src/main/java/.../service/OrderBookService.java` - Add query handlers
+
+**Implementation Notes:**
+- Queries are read-only (no state changes)
+- Can use caching for frequently accessed data
+- Ensure efficient query execution
+- Support pagination for large result sets
+
+---
+
+## Phase 4: API Layer (Week 4-5)
+
+### Task 4.1: User Management APIs
+**Priority**: High  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **User Registration & Profile**
+   - `POST /api/v1/users/register` - Register new user
+   - `GET /api/v1/users/{userId}` - Get user profile
+   - `PUT /api/v1/users/{userId}/profile` - Update profile
+   - `GET /api/v1/users/{userId}/stats` - Get trading statistics
+
+2. **Verification APIs**
+   - `POST /api/v1/users/{userId}/verify-phone` - Verify phone
+   - `POST /api/v1/users/{userId}/verify-email` - Verify email
+   - `POST /api/v1/users/{userId}/kyc-submit` - Submit KYC
+
+3. **Balance APIs**
+   - `GET /api/v1/users/{userId}/balance` - Get balances
+   - `POST /api/v1/users/{userId}/deposit` - Deposit crypto
+   - `POST /api/v1/users/{userId}/withdraw` - Withdraw crypto
+   - `GET /api/v1/users/{userId}/transactions` - Transaction history
+
+**Files to Create:**
+- `src/main/java/.../controller/UserRestController.java`
+- `src/main/java/.../controller/payload/CreateUserRequest.java`
+- `src/main/java/.../controller/payload/UpdateUserProfileRequest.java`
+- `src/main/java/.../controller/payload/DepositRequest.java`
+- `src/main/java/.../controller/payload/WithdrawRequest.java`
+
+**Files to Modify:**
+- `src/main/java/.../controller/payload/RequestMapper.java` - Add mappers
+
+---
+
+### Task 4.2: Payment Method APIs
+**Priority**: High  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Payment Method CRUD**
+   - `GET /api/v1/users/{userId}/payment-methods` - List payment methods
+   - `POST /api/v1/users/{userId}/payment-methods` - Create payment method
+   - `PUT /api/v1/users/{userId}/payment-methods/{id}` - Update payment method
+   - `DELETE /api/v1/users/{userId}/payment-methods/{id}` - Delete payment method
+   - `POST /api/v1/users/{userId}/payment-methods/{id}/verify` - Verify payment method
+
+**Files to Create:**
+- `src/main/java/.../controller/PaymentMethodRestController.java`
+- `src/main/java/.../controller/payload/CreatePaymentMethodRequest.java`
+- `src/main/java/.../controller/payload/UpdatePaymentMethodRequest.java`
+
+---
+
+### Task 4.3: Enhanced Post APIs
+**Priority**: Critical  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **Post Management**
+   - `POST /api/v1/posts` - Create post (enhanced)
+   - `GET /api/v1/posts` - Search posts with filters
+   - `GET /api/v1/posts/{postId}` - Get post details
+   - `PUT /api/v1/posts/{postId}` - Update post
+   - `DELETE /api/v1/posts/{postId}` - Close post
+   - `POST /api/v1/posts/{postId}/pause` - Pause post
+   - `POST /api/v1/posts/{postId}/resume` - Resume post
+   - `GET /api/v1/users/{userId}/posts` - Get user's posts
+
+**Files to Modify:**
+- `src/main/java/.../controller/OrderBookRestController.java` - Enhance existing endpoints
+- `src/main/java/.../controller/payload/CreatePostRequest.java` - Add new fields
+- `src/main/java/.../controller/payload/QueryPostsRequest.java` - Add filters
+
+---
+
+### Task 4.4: Enhanced Order APIs
+**Priority**: Critical  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **Order Management**
+   - `POST /api/v1/orders` - Create order (enhanced)
+   - `GET /api/v1/orders/{orderId}` - Get order details
+   - `GET /api/v1/users/{userId}/orders` - Get user's orders
+   - `POST /api/v1/orders/{orderId}/mark-paid` - Mark as paid
+   - `POST /api/v1/orders/{orderId}/confirm` - Confirm payment
+   - `POST /api/v1/orders/{orderId}/cancel` - Cancel order
+   - `POST /api/v1/orders/{orderId}/appeal` - Create appeal
+
+**Files to Modify:**
+- `src/main/java/.../controller/OrderBookRestController.java` - Enhance existing, add new
+- `src/main/java/.../controller/payload/CreateOrderRequest.java` - Add new fields
+- `src/main/java/.../controller/payload/MarkOrderPaidRequest.java` - New
+- `src/main/java/.../controller/payload/ConfirmOrderRequest.java` - New
+- `src/main/java/.../controller/payload/CancelOrderRequest.java` - New
+
+---
+
+### Task 4.5: Appeal APIs
+**Priority**: Medium  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Appeal Management**
+   - `POST /api/v1/appeals` - Create appeal
+   - `GET /api/v1/appeals/{appealId}` - Get appeal details
+   - `GET /api/v1/orders/{orderId}/appeal` - Get order's appeal
+   - `POST /api/v1/appeals/{appealId}/resolve` - Admin resolution
+
+**Files to Create:**
+- `src/main/java/.../controller/AppealRestController.java`
+- `src/main/java/.../controller/payload/CreateAppealRequest.java`
+- `src/main/java/.../controller/payload/ResolveAppealRequest.java`
+
+---
+
+## Phase 5: Advanced Features (Week 5-6)
+
+### Task 5.1: Auto-Release Mechanism
+**Priority**: Critical  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Enhanced Tick Command**
+   - Check orders in PAID status
+   - If auto-release time exceeded and no appeal:
+     - Automatically execute confirm order logic
+     - Log auto-release in command log
+
+2. **Deterministic Timing**
+   - Use tick command time, not system clock
+   - Ensure deterministic auto-release behavior
+
+**Files to Modify:**
+- `src/main/java/.../service/OrderBookService.java` - Enhance handleTicker
+- `src/main/java/.../model/transport/CommandTick.java` - Verify structure
+
+**Implementation Notes:**
+- Auto-release must be deterministic
+- Use command sequence for timing, not wall clock
+- Log all auto-releases as commands
+
+---
+
+### Task 5.2: Post Expiration
+**Priority**: Medium  
+**Estimated Time**: 1 day
+
+**Subtasks:**
+1. **Expiration Handling**
+   - Check posts with expiration time
+   - Auto-close expired posts
+   - Release reserved amounts
+
+**Files to Modify:**
+- `src/main/java/.../service/OrderBookService.java` - Add to tick handler
+
+---
+
+### Task 5.3: Order Timeout Enhancement
+**Priority**: High  
+**Estimated Time**: 1 day
+
+**Subtasks:**
+1. **Enhanced Timeout Logic**
+   - Different timeouts for different order statuses
+   - PAID status: auto-release timeout
+   - OPEN status: cancel timeout
+
+**Files to Modify:**
+- `src/main/java/.../service/OrderBookService.java` - Enhance handleTicker
+
+---
+
+## Phase 6: Testing & Validation (Week 6-7)
+
+### Task 6.1: Deterministic Testing
+**Priority**: Critical  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **Test Identical Command Sequences**
+   - Create test suite with identical command sequences
+   - Verify identical results
+   - Test state recovery from RocksDB
+
+2. **Test State Recovery**
+   - Test recovery from RocksDB logs
+   - Verify state consistency after recovery
+
+3. **Test Concurrent Commands**
+   - Verify single-writer pattern maintains order
+   - Test command processing order
+
+**Files to Create:**
+- `src/test/java/.../DeterministicTest.java`
+- `src/test/java/.../StateRecoveryTest.java`
+
+---
+
+### Task 6.2: Integration Testing
+**Priority**: High  
+**Estimated Time**: 3 days
+
+**Subtasks:**
+1. **Complete Order Lifecycle**
+   - Test order creation → payment → confirmation → completion
+   - Test cancellation scenarios
+   - Test appeal scenarios
+
+2. **Balance Management**
+   - Test deposit, withdraw, reserve, release
+   - Test balance validation
+   - Test atomic operations
+
+3. **Escrow System**
+   - Test escrow for SELL posts
+   - Test escrow for BUY posts
+   - Test escrow release scenarios
+
+**Files to Create:**
+- `src/test/java/.../OrderLifecycleTest.java`
+- `src/test/java/.../BalanceManagementTest.java`
+- `src/test/java/.../EscrowTest.java`
+
+---
+
+### Task 6.3: Performance Testing
+**Priority**: Medium  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Load Testing**
+   - Test high-order volume
+   - Test concurrent users
+   - Measure latency
+
+2. **RocksDB Performance**
+   - Test write performance
+   - Test read performance
+   - Test batch operations
+
+**Files to Create:**
+- `src/test/java/.../LoadTest.java`
+- `src/test/java/.../PerformanceTest.java`
+
+---
+
+## Phase 7: Documentation & Polish (Week 7)
+
+### Task 7.1: API Documentation
+**Priority**: High  
+**Estimated Time**: 2 days
+
+**Subtasks:**
+1. **Swagger Documentation**
+   - Add OpenAPI annotations to all endpoints
+   - Document request/response models
+   - Document error responses
+   - Add examples
+
+**Files to Modify:**
+- All controller classes - Add Swagger annotations
+- All request/response DTOs - Add schema annotations
+
+---
+
+### Task 7.2: Code Documentation
+**Priority**: Medium  
+**Estimated Time**: 1 day
+
+**Subtasks:**
+1. **JavaDoc**
+   - Document public APIs
+   - Document complex business logic
+   - Document domain models
+
+**Files to Modify:**
+- All service classes
+- All domain models
+- All repositories
+
+---
+
+### Task 7.3: README Updates
+**Priority**: Medium  
+**Estimated Time**: 1 day
+
+**Subtasks:**
+1. **Update README**
+   - Document new features
+   - Update API examples
+   - Update architecture diagrams
+
+**Files to Modify:**
+- `readme.md`
+
+---
+
+## Implementation Guidelines
+
+### Single Writer Pattern Enforcement
+1. **All Commands Must Go Through RequestHandler**
+   - No direct state modifications
+   - All state changes via commands
+   - Commands logged to RocksDB before processing
+
+2. **Single Thread Execution**
+   - `RequestHandler.dutyCircle()` runs in single thread
+   - No concurrent modifications
+   - Deterministic execution order
+
+3. **JCTools Queue Usage**
+   - Multiple producers (REST controllers) use `MpscLinkedQueue`
+   - Single consumer (RequestHandler) processes commands
+   - Lock-free, high-performance queue
+
+### RocksDB Usage
+1. **Command Logging**
+   - All commands persisted before processing
+   - Use WriteBatch for atomic operations
+   - Deterministic indexing
+
+2. **State Storage**
+   - Use column families for different entity types
+   - Efficient key design for queries
+   - Batch operations for performance
+
+### Java 25 Features
+1. **Virtual Threads**
+   - Use for non-blocking callbacks
+   - Use for I/O operations
+   - Don't use for command processing (single-threaded)
+
+2. **Pattern Matching**
+   - Use switch expressions for command handling
+   - Use sealed classes for commands/queries
+
+### Spring Boot 4
+1. **Dependency Injection**
+   - Use constructor injection
+   - Use `@RequiredArgsConstructor` from Lombok
+
+2. **Configuration**
+   - Use `@ConfigurationProperties` for configuration
+   - Externalize all configuration to `application.yaml`
+
+---
+
+## Risk Mitigation
+
+### Risk 1: Performance Bottlenecks
+- **Mitigation**: Use JCTools for high-performance queues, batch processing, efficient RocksDB operations
+
+### Risk 2: Determinism Violations
+- **Mitigation**: All commands logged before processing, use deterministic time sources, no external API calls in command processing
+
+### Risk 3: Balance Inconsistencies
+- **Mitigation**: Atomic balance operations, validation before state changes, comprehensive testing
+
+### Risk 4: Data Loss
+- **Mitigation**: All commands logged to RocksDB, support state recovery, snapshot service
+
+---
+
+## Success Criteria
+
+1. **Functional**
+   - All P2P features implemented per specification
+   - All APIs working correctly
+   - Escrow system functioning properly
+
+2. **Performance**
+   - Command processing < 100ms
+   - Support 10,000+ orders/second
+   - Low latency for queries
+
+3. **Quality**
+   - Deterministic behavior verified
+   - Comprehensive test coverage
+   - Code follows constitution principles
+
+4. **Documentation**
+   - Complete API documentation
+   - Code documentation
+   - Architecture documentation
+
+---
+
+*Last Updated: 2025*
+*Project: total-ordering-architect-timer*
+*Version: 1.0*
+*Implementation Plan: P2P Cryptocurrency Marketplace*
+
