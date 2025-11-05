@@ -134,12 +134,14 @@ public class OrderBookService {
 
         if (queryPosts.getMinPrice() != null) {
             postStream = postStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMinPrice()) >= 0);
-            countStream = countStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMinPrice()) <= 0);
+            countStream = countStream.filter(
+                    post -> post.getAvailableAmount().compareTo(queryPosts.getMinPrice()) <= 0);
         }
 
         if (queryPosts.getMaxPrice() != null) {
             postStream = postStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMaxPrice()) <= 0);
-            countStream = countStream.filter(post -> post.getAvailableAmount().compareTo(queryPosts.getMaxPrice()) >= 0);
+            countStream = countStream.filter(
+                    post -> post.getAvailableAmount().compareTo(queryPosts.getMaxPrice()) >= 0);
         }
 
         postStream = postStream.skip(queryPosts.getOffset()).limit(queryPosts.getLimit());

@@ -7,5 +7,7 @@ package gc.garcol.totalorderingarchitecttimer.model.transport;
 public interface Command extends Request {
     CommandType getCommandType();
 
+    Long getIssueAt();
+
     byte[] toBytes();
 }

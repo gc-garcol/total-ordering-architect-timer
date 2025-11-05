@@ -27,19 +27,16 @@ import java.util.concurrent.TimeUnit;
 public class RequestHandler {
 
     static final int MAX_CONTINUOUS_ERROR = 20;
+    static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     static       int continuousErrorCount = 0;
-
     private final MpscLinkedQueue<Message>     messageChannel;
     private final CommandLogRepository         commandLogRepository;
     private final OrderBookService             orderBookService;
     private final ConsumerVariables            consumerVariables;
     private final SnapshotService              snapshotService;
     private final LinkedHashMap<UUID, Message> inComingMessages = new LinkedHashMap<>();
-
     private long latestHandledIndex = -1;
     private long lastTickTime       = System.currentTimeMillis();
-
-    static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     public void init() {
         latestHandledIndex = snapshotService.getLatestSnapshotIndex();

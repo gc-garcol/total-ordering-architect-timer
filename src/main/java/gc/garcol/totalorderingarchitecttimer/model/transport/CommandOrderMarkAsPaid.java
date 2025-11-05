@@ -14,6 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class CommandOrderMarkAsPaid implements Command {
     UUID   correlationId;
+    Long   issueAt;
     Long   id;
     byte[] bytes;
 
@@ -30,8 +31,11 @@ public class CommandOrderMarkAsPaid implements Command {
     public static CommandOrderMarkAsPaid fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         UUID correlationId = new UUID(buffer.getLong(), buffer.getLong());
+        long issueAt = buffer.getLong();
         Long id = buffer.getLong();
-        return new CommandOrderMarkAsPaid(correlationId, id);
+        CommandOrderMarkAsPaid command = new CommandOrderMarkAsPaid(correlationId, id);
+        command.issueAt = issueAt;
+        return command;
     }
 
     @Override
@@ -44,9 +48,10 @@ public class CommandOrderMarkAsPaid implements Command {
         if (bytes != null) {
             return bytes;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES + Long.BYTES);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES + Long.BYTES * 2);
         buffer.putLong(correlationId.getMostSignificantBits());
         buffer.putLong(correlationId.getLeastSignificantBits());
+        buffer.putLong(issueAt);
         buffer.putLong(id);
         bytes = buffer.array();
         return bytes;

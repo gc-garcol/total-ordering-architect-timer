@@ -11,13 +11,12 @@ import java.math.BigInteger;
  */
 @Data
 public class CreateOrderRequest {
-    Long postId;
-    Long ownerId;
-    Long amount;
+    Long    postId;
+    Long    ownerId;
+    Long    amount;
     Integer timeoutSecond;
 
     public CommandOrderCreate toCommand() {
-        return new CommandOrderCreate(this.postId, this.ownerId, this.timeoutSecond,
-                BigInteger.valueOf(this.amount));
+        return new CommandOrderCreate(this.postId, this.ownerId, this.timeoutSecond, BigInteger.valueOf(this.amount));
     }
 }

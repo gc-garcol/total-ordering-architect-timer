@@ -16,6 +16,7 @@ import java.util.UUID;
 public class CommandOrderCreate implements Command {
     UUID correlationId;
 
+    Long       issueAt;
     Long       postId;
     Long       ownerId;
     Integer    timeoutSecond;
@@ -41,14 +42,17 @@ public class CommandOrderCreate implements Command {
 
     public static CommandOrderCreate fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        byte[] amountBytes = new byte[bytes.length - Long.BYTES * 2 - Long.BYTES * 2 - Integer.BYTES];
+        byte[] amountBytes = new byte[bytes.length - Long.BYTES * 2 - Long.BYTES * 3 - Integer.BYTES];
         UUID correlationId = new UUID(buffer.getLong(), buffer.getLong());
+        long issueAt = buffer.getLong();
         Long postId = buffer.getLong();
         Long ownerId = buffer.getLong();
         Integer timeout = buffer.getInt();
         buffer.get(amountBytes);
         BigInteger amount = new BigInteger(amountBytes);
-        return new CommandOrderCreate(correlationId, postId, ownerId, timeout, amount);
+        CommandOrderCreate command = new CommandOrderCreate(correlationId, postId, ownerId, timeout, amount);
+        command.issueAt = issueAt;
+        return command;
     }
 
     @Override
@@ -62,9 +66,10 @@ public class CommandOrderCreate implements Command {
             return bytes;
         }
         byte[] amountBytes = amount.toByteArray();
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES * 2 + Long.BYTES * 2 + Integer.BYTES + amountBytes.length);
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES * 2 + Long.BYTES * 3 + Integer.BYTES + amountBytes.length);
         buffer.putLong(correlationId.getMostSignificantBits());
         buffer.putLong(correlationId.getLeastSignificantBits());
+        buffer.putLong(issueAt);
         buffer.putLong(postId);
         buffer.putLong(ownerId);
         buffer.putInt(timeoutSecond);

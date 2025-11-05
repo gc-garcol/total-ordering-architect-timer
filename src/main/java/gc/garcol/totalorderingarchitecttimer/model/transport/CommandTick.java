@@ -15,6 +15,7 @@ import java.util.UUID;
 public class CommandTick implements Command {
 
     UUID   correlationId;
+    Long   issueAt;
     Long   currentTime;
     byte[] bytes;
 
@@ -31,8 +32,11 @@ public class CommandTick implements Command {
     public static CommandTick fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         UUID correlationId = new UUID(buffer.getLong(), buffer.getLong());
+        long issueAt = buffer.getLong();
         Long currentTime = buffer.getLong();
-        return new CommandTick(correlationId, currentTime);
+        CommandTick command = new CommandTick(correlationId, currentTime);
+        command.issueAt = issueAt;
+        return command;
     }
 
     @Override
@@ -50,9 +54,10 @@ public class CommandTick implements Command {
         if (bytes != null) {
             return bytes;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES + Long.BYTES);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES + Long.BYTES * 2);
         buffer.putLong(correlationId.getMostSignificantBits());
         buffer.putLong(correlationId.getLeastSignificantBits());
+        buffer.putLong(issueAt);
         buffer.putLong(currentTime);
         bytes = buffer.array();
         return bytes;

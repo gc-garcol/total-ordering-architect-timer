@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Appeal/dispute domain model for P2P cryptocurrency marketplace.
  * Represents a dispute raised by a user regarding an order.
- * 
+ *
  * @author thaivc
  * @since 2025
  */

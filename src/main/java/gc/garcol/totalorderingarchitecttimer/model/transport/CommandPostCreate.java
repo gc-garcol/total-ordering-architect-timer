@@ -17,6 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class CommandPostCreate implements Command {
     UUID       correlationId;
+    Long       issueAt;
     Long       userId;
     BigInteger amount;
 
@@ -36,12 +37,15 @@ public class CommandPostCreate implements Command {
 
     public static CommandPostCreate fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        byte[] amountBytes = new byte[bytes.length - 2 * Long.BYTES - Long.BYTES];
+        byte[] amountBytes = new byte[bytes.length - 2 * Long.BYTES - Long.BYTES * 2];
         UUID correlationId = new UUID(buffer.getLong(), buffer.getLong());
+        Long issueAt = buffer.getLong();
         Long userId = buffer.getLong();
         buffer.get(amountBytes);
         BigInteger amount = new BigInteger(amountBytes);
-        return new CommandPostCreate(correlationId, userId, amount);
+        CommandPostCreate command = new CommandPostCreate(correlationId, userId, amount);
+        command.issueAt = issueAt;
+        return command;
     }
 
     @Override
@@ -55,9 +59,10 @@ public class CommandPostCreate implements Command {
             return bytes;
         }
         byte[] amountBytes = amount.toByteArray();
-        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES + Long.BYTES + amountBytes.length);
+        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES + Long.BYTES + Long.BYTES + amountBytes.length);
         buffer.putLong(correlationId.getMostSignificantBits());
         buffer.putLong(correlationId.getLeastSignificantBits());
+        buffer.putLong(issueAt);
         buffer.putLong(userId);
         buffer.put(amountBytes);
         bytes = buffer.array();

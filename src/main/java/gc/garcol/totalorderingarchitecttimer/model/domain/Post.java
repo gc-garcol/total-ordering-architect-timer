@@ -30,7 +30,6 @@ public class Post {
     PostType type = PostType.BUY;
 
     // Amount information
-    BigInteger amount;              // Total crypto amount (deprecated, use totalAmount)
     BigInteger totalAmount;         // Total crypto available
     BigInteger availableAmount;      // Remaining crypto available
 
@@ -42,20 +41,20 @@ public class Post {
     BigInteger maxTradeAmount;       // Maximum order amount
 
     // Currency information
-    String baseCurrency = "BTC";
+    String baseCurrency  = "BTC";
     String quoteCurrency = "USD";
 
     // Payment and trading terms
     Set<PaymentMethodType> acceptedPaymentMethods = new HashSet<>();
-    String terms;                   // Trading terms and conditions
-    Integer paymentTimeLimit;       // Minutes to complete payment
-    Integer autoReleaseTime;        // Minutes for auto-release after payment
+    String                 terms;                   // Trading terms and conditions
+    Integer                paymentTimeLimit;       // Minutes to complete payment
+    Integer                autoReleaseTime;        // Minutes for auto-release after payment
 
     // Status
     PostStatus status = PostStatus.ACTIVE;
 
     // Statistics
-    Integer viewCount = 0;
+    Integer viewCount  = 0;
     Integer orderCount = 0;
 
     // Timestamps

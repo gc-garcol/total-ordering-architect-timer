@@ -32,12 +32,12 @@ public class User {
 
     // Balance information
     BigInteger cryptoBalance = BigInteger.ZERO;
-    BigInteger fiatBalance = BigInteger.ZERO;
+    BigInteger fiatBalance   = BigInteger.ZERO;
 
     // Trading statistics
-    BigDecimal rating = BigDecimal.ZERO;  // Average rating (0.0 - 5.0)
-    Integer completedTrades = 0;
-    Integer cancelRate = 0;  // Percentage of canceled orders
+    BigDecimal rating          = BigDecimal.ZERO;  // Average rating (0.0 - 5.0)
+    Integer    completedTrades = 0;
+    Integer    cancelRate      = 0;  // Percentage of canceled orders
 
     // Timestamps
     LocalDateTime registrationDate;

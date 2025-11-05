@@ -5,6 +5,5 @@ package gc.garcol.totalorderingarchitecttimer.model.domain;
  * @since 2025
  */
 public enum PostType {
-    BUY,
-    SELL;
+    BUY, SELL
 }

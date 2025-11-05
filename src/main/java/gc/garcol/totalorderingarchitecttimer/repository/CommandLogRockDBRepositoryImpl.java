@@ -23,12 +23,11 @@ import java.util.Optional;
 public class CommandLogRockDBRepositoryImpl implements CommandLogRepository {
 
     private final RocksDBVariables rocksDBVariables;
-
+    private final byte[]             LATEST_INDEX_KEY = "LATEST_INDEX_KEY".getBytes();
     private       RocksDB            rocksDB;
     private       ColumnFamilyHandle commandLogHandle;
     private       ColumnFamilyHandle latestCommandLogHandle;
     private       Long               latestIndex      = -1L;
-    private final byte[]             LATEST_INDEX_KEY = "LATEST_INDEX_KEY".getBytes();
 
     public CommandLogRockDBRepositoryImpl(RocksDBVariables rocksDBVariables) {
         this.rocksDBVariables = rocksDBVariables;

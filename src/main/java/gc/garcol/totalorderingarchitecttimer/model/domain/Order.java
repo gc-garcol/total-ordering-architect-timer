@@ -36,13 +36,13 @@ public class Order {
 
     // Status
     OrderStatus status;
-    Long expireTime;         // Auto-cancel deadline (milliseconds since epoch)
+    Long        expireTime;         // Auto-cancel deadline (milliseconds since epoch)
 
     // Payment information
     PaymentMethodType paymentMethod;
-    Long paymentMethodId;
-    String paymentReference;  // Payment transaction reference
-    String paymentProof;      // URL or reference to payment proof
+    Long              paymentMethodId;
+    String            paymentReference;  // Payment transaction reference
+    String            paymentProof;      // URL or reference to payment proof
 
     // Timestamps
     LocalDateTime createdAt;
@@ -52,7 +52,7 @@ public class Order {
     LocalDateTime canceledAt;
 
     // Appeal and cancellation
-    Long appealId;          // If order is in dispute
+    Long   appealId;          // If order is in dispute
     String cancelReason;
     String notes;           // Additional notes from buyer/seller
 }
