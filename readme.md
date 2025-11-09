@@ -6,6 +6,8 @@ The approach to updating outdated data while preserving `determinism` in a total
 f(command[i -> j], timestampX) == f(command[i -> j], timestampY)
 ```
 
+![wheelTimer.png](wheelTimer.png)
+
 ```mermaid
 flowchart LR
     %% Producers
