@@ -80,12 +80,14 @@ public class OrderBookService {
     private RequestResult handleTicker(CommandTick commandTick) {
         Map<OrderStatus, OrderStatus> nextStatusTimeout = Map.of(OrderStatus.OPEN, OrderStatus.CANCELED);
 
-        // todo optimize: using HashedWheelTimer
-        orderBookRepository.getOrders().values().stream()
-                .filter(order -> order.getExpireTime() < commandTick.getCurrentTime()) //
+        orderBookRepository.getOrderTimer().pollTimeoutNodes(commandTick.getCurrentTime()) //
+                .stream() //
+                .map(nodeKey -> orderBookRepository.findOrderById(nodeKey.id())) //
                 .forEach(order -> {
                     var currentStatus = order.getStatus();
                     order.setStatus(nextStatusTimeout.getOrDefault(order.getStatus(), currentStatus));
+
+                    // todo update new timeout if needed
                 });
         return new RequestResult.Common(commandTick.getCorrelationId(), HttpStatus.OK.value(),
                 "on update tick success!!!");

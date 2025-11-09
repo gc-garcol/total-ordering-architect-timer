@@ -1,5 +1,6 @@
 package gc.garcol.totalorderingarchitecttimer.repository;
 
+import gc.garcol.totalorderingarchitecttimer.collection.TreeTimer;
 import gc.garcol.totalorderingarchitecttimer.model.domain.Order;
 import gc.garcol.totalorderingarchitecttimer.model.domain.Post;
 import gc.garcol.totalorderingarchitecttimer.model.domain.User;
@@ -19,6 +20,8 @@ public class OrderBookRepository {
     Long2ObjectHashMap<Post>  posts  = new Long2ObjectHashMap<>();
     Long2ObjectHashMap<Order> orders = new Long2ObjectHashMap<>();
 
+    TreeTimer orderTimer = new TreeTimer("order-timer");
+
     long userLastId  = 0;
     long postLastId  = 0;
     long orderLastId = 0;
@@ -37,6 +40,8 @@ public class OrderBookRepository {
         orders.put(order.getId(), order);
         posts.get(order.getPostId()).getOrders().add(order);
         orderLastId = order.getId();
+
+        orderTimer.add(order.getId(), order.getExpireTime());
     }
 
     public User findUserById(Long id) {
